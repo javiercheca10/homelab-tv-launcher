@@ -123,3 +123,14 @@ enum class PreferredPlayer(val label: String) {
     EXOPLAYER("Reproductor Integrado"),
     JELLYFIN("App Oficial Jellyfin")
 }
+
+@Serializable
+data class AppUpdateInfo(
+    val available: Boolean = false,
+    @SerialName("version_code") val versionCode: Int = 0,
+    @SerialName("version_name") val versionName: String = "",
+    val sha256: String = "",
+    @SerialName("size_bytes") val sizeBytes: Long = 0L,
+    @SerialName("updated_at") val updatedAt: Long = 0L,
+    @SerialName("download_url") val downloadUrl: String = ""
+)

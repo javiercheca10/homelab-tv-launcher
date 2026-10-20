@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -35,6 +36,8 @@ class MainActivity : ComponentActivity() {
     private var serverOnlineState by mutableStateOf(false)
     private var activeStreamHostState by mutableStateOf("")
     private var settingsState by mutableStateOf<LauncherSettings?>(null)
+    private var availableUpdateState by mutableStateOf<AppUpdateInfo?>(null)
+    private var updateProgressState by mutableStateOf<Int?>(null)
 
     private val packageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -98,6 +101,9 @@ class MainActivity : ComponentActivity() {
                         }.onFailure {
                             torrentSessionsState = emptyList()
                         }
+                        if (tick % 8 == 0) {
+                            availableUpdateState = torrentRepo.checkAppUpdate(applicationContext, currentSettings)
+                        }
                     }
 
                     if (hasJf && (tick % 6 == 0 || !hasTs)) {
@@ -151,6 +157,11 @@ class MainActivity : ComponentActivity() {
                 jellyfinLatest = jellyfinLatestState,
                 serverOnline = serverOnlineState,
                 settings = currentSettings,
+                availableUpdate = availableUpdateState,
+                updateDownloadProgress = updateProgressState,
+                onInstallUpdate = {
+                    triggerAppUpdate()
+                },
                 onLaunchApp = { appRepo.launchApp(it) },
                 onToggleFavorite = { app ->
                     appRepo.toggleFavorite(app.packageName)
@@ -231,6 +242,7 @@ class MainActivity : ComponentActivity() {
                 }.onFailure {
                     torrentSessionsState = emptyList()
                 }
+                availableUpdateState = torrentRepo.checkAppUpdate(applicationContext, currentSettings)
             }
 
             if (hasJf) {
@@ -245,6 +257,28 @@ class MainActivity : ComponentActivity() {
             }
 
             serverOnlineState = tsOk || jfOk
+        }
+    }
+
+    private fun triggerAppUpdate() {
+        if (updateProgressState != null) return
+        val currentSettings = settingsState ?: appRepo.loadSettings()
+        lifecycleScope.launch {
+            updateProgressState = 1
+            val result = torrentRepo.downloadAndInstallUpdate(
+                context = applicationContext,
+                settings = currentSettings,
+                updateInfo = availableUpdateState,
+                onProgress = { pct -> updateProgressState = pct }
+            )
+            updateProgressState = null
+            result.onFailure { err ->
+                Toast.makeText(
+                    applicationContext,
+                    err.message ?: "Error al descargar la actualización",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 }

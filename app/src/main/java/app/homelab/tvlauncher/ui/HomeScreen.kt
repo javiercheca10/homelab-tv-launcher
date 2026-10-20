@@ -61,6 +61,9 @@ fun HomeScreen(
     jellyfinLatest: List<JellyfinMediaItem>,
     serverOnline: Boolean,
     settings: LauncherSettings,
+    availableUpdate: AppUpdateInfo? = null,
+    updateDownloadProgress: Int? = null,
+    onInstallUpdate: () -> Unit = {},
     onLaunchApp: (TvAppInfo) -> Unit,
     onToggleFavorite: (TvAppInfo) -> Unit,
     onMoveApp: (TvAppInfo, Int, Boolean) -> Unit,
@@ -148,6 +151,9 @@ fun HomeScreen(
             TopNavigationBar(
                 serverOnline = serverOnline,
                 hiddenCount = hiddenApps.size,
+                availableUpdate = availableUpdate,
+                updateDownloadProgress = updateDownloadProgress,
+                onInstallUpdate = onInstallUpdate,
                 onOpenTvInputs = onOpenTvInputs,
                 onOpenHiddenApps = { showHiddenAppsDialog = true },
                 onOpenServerSettings = { showSettingsDialog = true },
@@ -414,6 +420,10 @@ fun HomeScreen(
                     showSettingsDialog = false
                     onRefreshNow()
                 },
+                onInstallUpdate = {
+                    showSettingsDialog = false
+                    onInstallUpdate()
+                },
                 onDismiss = { showSettingsDialog = false }
             )
         }
@@ -535,6 +545,9 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
 private fun TopNavigationBar(
     serverOnline: Boolean,
     hiddenCount: Int,
+    availableUpdate: AppUpdateInfo?,
+    updateDownloadProgress: Int?,
+    onInstallUpdate: () -> Unit,
     onOpenTvInputs: () -> Unit,
     onOpenHiddenApps: () -> Unit,
     onOpenServerSettings: () -> Unit,
@@ -613,6 +626,32 @@ private fun TopNavigationBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            if (availableUpdate != null || updateDownloadProgress != null) {
+                val updateLabel = when {
+                    updateDownloadProgress != null -> "⏳ Actualizando ${updateDownloadProgress}%"
+                    availableUpdate?.versionName?.isNotBlank() == true -> "⬇ Actualizar v${availableUpdate.versionName}"
+                    else -> "⬇ Actualizar App"
+                }
+                TopActionChip(
+                    label = updateLabel,
+                    highlightColor = Color(0xFF10B981),
+                    onFocus = {
+                        onFocusHero(
+                            HeroPreview(
+                                id = "sys_ota_update",
+                                title = "Nueva versión disponible (${availableUpdate?.versionName ?: "OTA"})",
+                                badgeText = "ACTUALIZACIÓN OTA LOCAL",
+                                subtitle = "Descarga directa desde tu servidor Homelab",
+                                description = "Pulsa OK para descargar e instalar automáticamente la nueva versión del Launcher conservando tus ajustes y favoritas.",
+                                primaryColor = Color(0xFF0E2923),
+                                accentColor = Color(0xFF10B981)
+                            )
+                        )
+                    },
+                    onClick = onInstallUpdate
+                )
+            }
+
             TopActionChip(
                 label = "Entradas HDMI",
                 onFocus = {
@@ -721,11 +760,22 @@ private fun TopNavigationBar(
 @Composable
 private fun TopActionChip(
     label: String,
+    highlightColor: Color? = null,
     onFocus: () -> Unit,
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.08f else 1.0f, label = "chipScale")
+    val bgColor = when {
+        focused -> highlightColor ?: Color.White
+        highlightColor != null -> highlightColor.copy(alpha = 0.25f)
+        else -> Color.White.copy(alpha = 0.10f)
+    }
+    val borderColor = when {
+        focused -> Color.White
+        highlightColor != null -> highlightColor.copy(alpha = 0.85f)
+        else -> Color.White.copy(alpha = 0.16f)
+    }
 
     Box(
         modifier = Modifier
@@ -735,10 +785,10 @@ private fun TopActionChip(
                 if (it.isFocused) onFocus()
             }
             .clip(RoundedCornerShape(50))
-            .background(if (focused) Color.White else Color.White.copy(alpha = 0.10f))
+            .background(bgColor)
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) Color.White else Color.White.copy(alpha = 0.16f),
+                color = borderColor,
                 shape = RoundedCornerShape(50)
             )
             .combinedClickable(onClick = onClick)
@@ -747,9 +797,9 @@ private fun TopActionChip(
     ) {
         Text(
             text = label,
-            color = if (focused) Color(0xFF090D16) else Color.White.copy(alpha = 0.90f),
+            color = if (focused) Color(0xFF090D16) else Color.White.copy(alpha = 0.95f),
             fontSize = 12.sp,
-            fontWeight = if (focused) FontWeight.Bold else FontWeight.Medium
+            fontWeight = if (focused || highlightColor != null) FontWeight.Bold else FontWeight.Medium
         )
     }
 }
@@ -1568,6 +1618,7 @@ private fun HiddenAppsDialog(
 private fun ServerSettingsDialog(
     current: LauncherSettings,
     onSave: (LauncherSettings) -> Unit,
+    onInstallUpdate: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val firstFocus = remember { FocusRequester() }
@@ -1667,6 +1718,11 @@ private fun ServerSettingsDialog(
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
+
+                DialogActionButton(
+                    text = "⬇ Buscar e instalar actualización del servidor",
+                    onClick = onInstallUpdate
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(modifier = Modifier.weight(1f)) {

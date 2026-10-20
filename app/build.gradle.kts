@@ -24,8 +24,8 @@ android {
         applicationId = "app.homelab.tvlauncher"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 2
+        versionName = (findProperty("appVersionName") as String?) ?: "1.1.0"
 
         buildConfigField("String", "DEFAULT_JELLYFIN_URL", "\"${prop("jellyfin.url", "")}\"")
         buildConfigField("String", "DEFAULT_JELLYFIN_USER_ID", "\"${prop("jellyfin.userId", "")}\"")
