@@ -85,11 +85,11 @@ fun HomeScreen(
             HeroPreview(
                 id = "welcome",
                 title = "Homelab TV",
-                badgeText = "LAUNCHER NATIVO · SIN PUBLICIDAD",
-                subtitle = "Android TV · Google TV · Streaming Local",
-                description = "Desplázate con la cruceta por tus aplicaciones, sesiones activas de Torrent Stream y tu biblioteca de Jellyfin.",
-                primaryColor = Color(0xFF141B2D),
-                accentColor = Color(0xFFE50914)
+                badgeText = "CINEMATIC EDITION",
+                subtitle = "Android TV · Colección y Streaming Local",
+                description = "Navega con la cruceta por tus aplicaciones destacadas, sesiones en curso de Torrent Stream y tu catálogo de Jellyfin.",
+                primaryColor = EditorialTheme.Ebony,
+                accentColor = EditorialTheme.Amber
             )
         )
     }
@@ -136,16 +136,16 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07090E))
+            .background(EditorialTheme.Obsidian)
     ) {
-        // 1. Full-screen Immersive Netflix-style Backdrop (subtle, low protagonism)
+        // 1. Full-screen Immersive Editorial Backdrop
         ImmersiveBackdrop(hero = currentHero)
 
-        // 2. Foreground Content: Top Bar + Top-Left Hero Details + Smooth Rows
+        // 2. 60/40 Vertical Layout: Top 55-60% open for artwork & hero typography, bottom 40-45% for carousels
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 20.dp)
+                .padding(top = 18.dp)
         ) {
             TopNavigationBar(
                 serverOnline = serverOnline,
@@ -161,36 +161,36 @@ fun HomeScreen(
                 onFocusHero = { currentHero = it }
             )
 
-            // Netflix-style Top-Left Hero Banner
-            NetflixHeroBanner(
+            // Cinematic Editorial Hero Banner (Top 55-60% area)
+            EditorialHeroBanner(
                 hero = currentHero,
                 modifier = Modifier
-                    .fillMaxWidth(0.62f)
-                    .height(178.dp)
-                    .padding(start = 44.dp, top = 10.dp, bottom = 6.dp)
+                    .fillMaxWidth(0.68f)
+                    .height(200.dp)
+                    .padding(start = 48.dp, top = 8.dp, bottom = 4.dp)
             )
 
-            // 4 Smooth Horizontal Rows with D-Pad Scrolling
+            // 4 Horizontal Carousel Rows (1 fully active in viewport + next row partially peeking from below)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(top = 4.dp, bottom = 36.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                contentPadding = PaddingValues(top = 6.dp, bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(22.dp)
             ) {
                 // ROW 1: FAVORITAS
                 if (favoriteApps.isNotEmpty()) {
                     item(key = "row_favorites") {
-                        SelectorRowSection(title = "Favoritas", accent = Color(0xFFE50914)) {
+                        SelectorRowSection(title = "Favoritas", accent = EditorialTheme.Amber) {
                             LazyRow(
-                                contentPadding = PaddingValues(horizontal = 44.dp),
+                                contentPadding = PaddingValues(horizontal = 48.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 itemsIndexed(favoriteApps, key = { _, app -> "fav_${app.packageName}" }) { idx, app ->
                                     AppSelectorCard(
                                         app = app,
-                                        cardWidth = 172.dp,
-                                        cardHeight = 100.dp,
+                                        cardWidth = 160.dp,
+                                        cardHeight = 96.dp,
                                         modifier = if (idx == 0) Modifier.focusRequester(initialFocusRequester) else Modifier,
                                         onFocused = { currentHero = appToHero(app, isFavRow = true) },
                                         onClick = { onLaunchApp(app) },
@@ -211,10 +211,10 @@ fun HomeScreen(
                         SelectorRowSection(
                             title = "Seguir viendo",
                             subtitleBadge = if (torrentSessions.isNotEmpty()) "${torrentSessions.size} Torrent activo" else null,
-                            accent = Color(0xFF38BDF8)
+                            accent = EditorialTheme.Amber
                         ) {
                             LazyRow(
-                                contentPadding = PaddingValues(horizontal = 44.dp),
+                                contentPadding = PaddingValues(horizontal = 48.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 // Active Torrent Stream Web sessions first
@@ -260,18 +260,18 @@ fun HomeScreen(
                 item(key = "row_all_apps") {
                     SelectorRowSection(
                         title = "Aplicaciones",
-                        subtitleBadge = "Mantén OK o pulsa MENÚ para organizar u ocultar",
-                        accent = Color(0xFFA855F7)
+                        subtitleBadge = "Mantén OK para opciones",
+                        accent = EditorialTheme.Amber
                     ) {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 44.dp),
+                            contentPadding = PaddingValues(horizontal = 48.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             itemsIndexed(allApps, key = { _, app -> "app_${app.packageName}" }) { idx, app ->
                                 AppSelectorCard(
                                     app = app,
-                                    cardWidth = 158.dp,
-                                    cardHeight = 94.dp,
+                                    cardWidth = 160.dp,
+                                    cardHeight = 96.dp,
                                     modifier = if (favoriteApps.isEmpty() && idx == 0) Modifier.focusRequester(initialFocusRequester) else Modifier,
                                     onFocused = { currentHero = appToHero(app, isFavRow = false) },
                                     onClick = { onLaunchApp(app) },
@@ -290,11 +290,11 @@ fun HomeScreen(
                     item(key = "row_jellyfin_latest") {
                         SelectorRowSection(
                             title = "Recientes en Jellyfin",
-                            subtitleBadge = "Biblioteca Multimedia",
-                            accent = Color(0xFF00A4DC)
+                            subtitleBadge = "Biblioteca",
+                            accent = EditorialTheme.Amber
                         ) {
                             LazyRow(
-                                contentPadding = PaddingValues(horizontal = 44.dp),
+                                contentPadding = PaddingValues(horizontal = 48.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 items(jellyfinLatest, key = { "latest_${it.id}" }) { media ->
@@ -424,6 +424,21 @@ fun HomeScreen(
     }
 }
 
+private object EditorialTheme {
+    val Obsidian = Color(0xFF090A0C)
+    val Ebony = Color(0xFF0D0E11)
+    val CardSurface = Color(0xFF13151A)
+    val CardBorder = Color(0xFF222630)
+    val FocusBorder = Color(0xD9EFECE6) // 85% Bone-white
+    val Bone = Color(0xFFEFECE6)
+    val BoneMuted = Color(0xFFC5C3BD)
+    val Amber = Color(0xFFD4A373)
+    val AmberMuted = Color(0x66D4A373)
+    val AmberBg = Color(0x1AD4A373)
+    val Slate = Color(0xFF8E929B)
+    val SlateDark = Color(0xFF242832)
+}
+
 private data class BackdropVisualTarget(
     val id: String,
     val backdropUrl: String?,
@@ -447,23 +462,23 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
 
     Crossfade(
         targetState = visualTarget,
-        animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "ImmersiveBackdropCrossfade"
     ) { state ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Base atmospheric radial gradient scaled dynamically to screen resolution (720p/1080p/4K)
+            // 1. Organic, desaturated dark atmospheric bloom behind artwork
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .drawBehind {
-                        val centerOffset = Offset(size.width * 0.73f, size.height * 0.24f)
+                        val centerOffset = Offset(size.width * 0.72f, size.height * 0.22f)
                         val gradRadius = (size.width * 0.65f).coerceAtLeast(400f)
                         drawRect(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    state.primaryColor.copy(alpha = 0.85f),
-                                    state.accentColor.copy(alpha = 0.22f),
-                                    Color(0xFF07090E)
+                                    state.primaryColor.copy(alpha = 0.40f),
+                                    state.accentColor.copy(alpha = 0.12f),
+                                    EditorialTheme.Obsidian
                                 ),
                                 center = centerOffset,
                                 radius = gradRadius
@@ -472,7 +487,7 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
                     }
             )
 
-            // Full-screen artwork on the upper-right with subtle protagonism (38% opacity)
+            // 2. Full-bleed cinematic artwork (uncompressed, mature 42% opacity)
             if (!state.backdropUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -483,7 +498,7 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(0.38f)
+                        .alpha(0.42f)
                 )
             } else if (state.fallbackDrawable != null) {
                 val safeDrawable = remember(state.id, state.fallbackDrawable) {
@@ -498,36 +513,37 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(55.dp)
-                        .alpha(0.26f)
+                        .blur(50.dp)
+                        .alpha(0.25f)
                 )
             }
 
-            // Left-to-Right Netflix Vignette (keeps left side dark for Hero text legibility)
+            // 3. Progressive filmic horizontal vignette (deep obsidian solid on left for typography readability)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.horizontalGradient(
-                            0.0f to Color(0xFF07090E),
-                            0.35f to Color(0xE807090E),
-                            0.68f to Color(0x8807090E),
-                            1.0f to Color(0x3307090E)
+                            0.0f to EditorialTheme.Obsidian,
+                            0.38f to Color(0xF2090A0C),
+                            0.65f to Color(0x99090A0C),
+                            1.0f to Color(0x22090A0C)
                         )
                     )
             )
 
-            // Top-to-Bottom Netflix Vignette (keeps bottom half dark for the card rows)
+            // 4. Filmic multi-stop vertical vignette (open artwork at top-center, 100% solid obsidian behind card rows)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            0.0f to Color(0x6607090E),
-                            0.28f to Color.Transparent,
-                            0.58f to Color(0xCC07090E),
-                            0.82f to Color(0xF507090E),
-                            1.0f to Color(0xFF07090E)
+                            0.0f to Color(0x77090A0C),
+                            0.20f to Color.Transparent,
+                            0.48f to Color(0x55090A0C),
+                            0.70f to Color(0xE6090A0C),
+                            0.85f to EditorialTheme.Obsidian,
+                            1.0f to EditorialTheme.Obsidian
                         )
                     )
             )
@@ -563,54 +579,55 @@ private fun TopNavigationBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 44.dp),
+            .padding(horizontal = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Brand + Server Status
+        // Understated Cinematic Brand Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(12.dp, 24.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color(0xFFE50914))
+                        .size(2.5.dp, 16.dp)
+                        .background(EditorialTheme.Amber)
                 )
                 Text(
                     text = "HOMELAB TV",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.5.sp
+                    color = EditorialTheme.Bone,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.5.sp
                 )
             }
 
-            // Server pill
+            // Minimalist Server Pill
             Row(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.08f))
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFF14161C))
+                    .border(1.dp, EditorialTheme.SlateDark, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(6.dp)
                         .clip(CircleShape)
-                        .background(if (serverOnline) Color(0xFF22C55E) else Color(0xFFF59E0B))
+                        .background(if (serverOnline) Color(0xFF22C55E) else EditorialTheme.Amber)
                 )
                 Text(
-                    text = if (serverOnline) "Servidor Conectado" else "Modo Local",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    text = if (serverOnline) "CONECTADO" else "LOCAL",
+                    color = EditorialTheme.Slate,
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.sp
                 )
             }
         }
@@ -618,7 +635,7 @@ private fun TopNavigationBar(
         // Quick Hardware & System Actions + Clock
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (availableUpdate != null || updateDownloadProgress != null) {
                 val updateLabel = when {
@@ -628,17 +645,17 @@ private fun TopNavigationBar(
                 }
                 TopActionChip(
                     label = updateLabel,
-                    highlightColor = Color(0xFF10B981),
+                    highlightColor = EditorialTheme.Amber,
                     onFocus = {
                         onFocusHero(
                             HeroPreview(
                                 id = "sys_ota_update",
                                 title = "Nueva versión disponible (${availableUpdate?.versionName ?: "OTA"})",
-                                badgeText = "ACTUALIZACIÓN OTA LOCAL",
+                                badgeText = "ACTUALIZACIÓN LOCAL",
                                 subtitle = "Descarga directa desde tu servidor Homelab",
-                                description = "Pulsa OK para descargar e instalar automáticamente la nueva versión del Launcher conservando tus ajustes y favoritas.",
-                                primaryColor = Color(0xFF0E2923),
-                                accentColor = Color(0xFF10B981)
+                                description = "Pulsa OK para descargar e instalar automáticamente la nueva versión del Launcher.",
+                                primaryColor = EditorialTheme.Ebony,
+                                accentColor = EditorialTheme.Amber
                             )
                         )
                     },
@@ -647,17 +664,17 @@ private fun TopNavigationBar(
             }
 
             TopActionChip(
-                label = "Entradas HDMI",
+                label = "Entradas",
                 onFocus = {
                     onFocusHero(
                         HeroPreview(
                             id = "sys_inputs",
                             title = "Entradas HDMI / TV",
-                            badgeText = "FUENTE DE VÍDEO",
+                            badgeText = "SEÑAL DE VÍDEO",
                             subtitle = "Selector de Entrada de Vídeo",
                             description = "Cambia directamente a la entrada HDMI o sintonizador de televisión.",
-                            primaryColor = Color(0xFF141E30),
-                            accentColor = Color(0xFF38BDF8)
+                            primaryColor = EditorialTheme.Ebony,
+                            accentColor = EditorialTheme.Slate
                         )
                     )
                 },
@@ -672,11 +689,11 @@ private fun TopNavigationBar(
                             HeroPreview(
                                 id = "sys_hidden",
                                 title = "Aplicaciones Ocultas ($hiddenCount)",
-                                badgeText = "FILTRO ANTI-BLOATWARE",
-                                subtitle = "Gestionar aplicaciones ocultadas del selector",
-                                description = "Revisa o restaura cualquiera de las $hiddenCount aplicaciones que has ocultado.",
-                                primaryColor = Color(0xFF1F1633),
-                                accentColor = Color(0xFFA855F7)
+                                badgeText = "BIBLIOTECA",
+                                subtitle = "Gestionar aplicaciones archivadas",
+                                description = "Revisa o restaura cualquiera de las aplicaciones que has ocultado.",
+                                primaryColor = EditorialTheme.Ebony,
+                                accentColor = EditorialTheme.Slate
                             )
                         )
                     },
@@ -690,12 +707,12 @@ private fun TopNavigationBar(
                     onFocusHero(
                         HeroPreview(
                             id = "sys_server",
-                            title = "Conexión con Servidor",
-                            badgeText = "JELLYFIN & TORRENT STREAM",
-                            subtitle = "Reproductor Predeterminado y Endpoints",
-                            description = "Configura el reproductor predeterminado (VLC, Kodi, ExoPlayer o Jellyfin) y las direcciones del servidor.",
-                            primaryColor = Color(0xFF0F2537),
-                            accentColor = Color(0xFF00A4DC)
+                            title = "Ajustes de Servidor",
+                            badgeText = "SISTEMA",
+                            subtitle = "Jellyfin y Torrent Stream Web",
+                            description = "Configura el reproductor predeterminado (VLC, Kodi, ExoPlayer) y las rutas de tu red.",
+                            primaryColor = EditorialTheme.Ebony,
+                            accentColor = EditorialTheme.Amber
                         )
                     )
                 },
@@ -703,17 +720,17 @@ private fun TopNavigationBar(
             )
 
             TopActionChip(
-                label = "Wi-Fi",
+                label = "Red",
                 onFocus = {
                     onFocusHero(
                         HeroPreview(
                             id = "sys_wifi",
-                            title = "Red y Wi-Fi",
-                            badgeText = "CONECTIVIDAD",
-                            subtitle = "Ajustes de red inalámbrica y Ethernet",
-                            description = "Abre la configuración de red inalámbrica o Ethernet del dispositivo.",
-                            primaryColor = Color(0xFF122620),
-                            accentColor = Color(0xFF10B981)
+                            title = "Conectividad y Red",
+                            badgeText = "SISTEMA",
+                            subtitle = "Wi-Fi y Ethernet",
+                            description = "Abre los ajustes de red inalámbrica o cableada del televisor.",
+                            primaryColor = EditorialTheme.Ebony,
+                            accentColor = EditorialTheme.Slate
                         )
                     )
                 },
@@ -728,10 +745,10 @@ private fun TopNavigationBar(
                             id = "sys_android",
                             title = "Ajustes del Sistema Android TV",
                             badgeText = "SISTEMA",
-                            subtitle = "Imagen, Sonido, Mandos Bluetooth y Dispositivo",
+                            subtitle = "Imagen, Audio, Mandos y Dispositivo",
                             description = "Abre el panel de configuración nativo de Android TV.",
-                            primaryColor = Color(0xFF1E222D),
-                            accentColor = Color(0xFF94A3B8)
+                            primaryColor = EditorialTheme.Ebony,
+                            accentColor = EditorialTheme.Slate
                         )
                     )
                 },
@@ -742,9 +759,10 @@ private fun TopNavigationBar(
 
             Text(
                 text = timeString,
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                color = EditorialTheme.Bone,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 1.sp
             )
         }
     }
@@ -759,16 +777,16 @@ private fun TopActionChip(
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.08f else 1.0f, label = "chipScale")
+    val scale by animateFloatAsState(if (focused) 1.04f else 1.0f, label = "chipScale")
     val bgColor = when {
-        focused -> highlightColor ?: Color.White
-        highlightColor != null -> highlightColor.copy(alpha = 0.25f)
-        else -> Color.White.copy(alpha = 0.10f)
+        focused -> highlightColor ?: EditorialTheme.Bone
+        highlightColor != null -> highlightColor.copy(alpha = 0.20f)
+        else -> Color(0xFF14161C)
     }
     val borderColor = when {
-        focused -> Color.White
-        highlightColor != null -> highlightColor.copy(alpha = 0.85f)
-        else -> Color.White.copy(alpha = 0.16f)
+        focused -> highlightColor ?: EditorialTheme.Bone
+        highlightColor != null -> highlightColor.copy(alpha = 0.60f)
+        else -> EditorialTheme.SlateDark
     }
 
     Box(
@@ -778,28 +796,29 @@ private fun TopActionChip(
                 focused = it.isFocused
                 if (it.isFocused) onFocus()
             }
-            .clip(RoundedCornerShape(50))
+            .clip(RoundedCornerShape(6.dp))
             .background(bgColor)
             .border(
-                width = if (focused) 2.dp else 1.dp,
+                width = 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(50)
+                shape = RoundedCornerShape(6.dp)
             )
             .combinedClickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            color = if (focused) Color(0xFF090D16) else Color.White.copy(alpha = 0.95f),
-            fontSize = 12.sp,
-            fontWeight = if (focused || highlightColor != null) FontWeight.Bold else FontWeight.Medium
+            color = if (focused) EditorialTheme.Obsidian else EditorialTheme.BoneMuted,
+            fontSize = 11.5.sp,
+            fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,
+            letterSpacing = 0.4.sp
         )
     }
 }
 
 @Composable
-private fun NetflixHeroBanner(
+private fun EditorialHeroBanner(
     hero: HeroPreview,
     modifier: Modifier = Modifier
 ) {
@@ -807,31 +826,33 @@ private fun NetflixHeroBanner(
         modifier = modifier,
         verticalArrangement = Arrangement.Center
     ) {
-        // Category Badge
+        // Tag / Meta category badge
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(hero.accentColor.copy(alpha = 0.90f))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(EditorialTheme.AmberBg)
+                    .border(1.dp, EditorialTheme.AmberMuted, RoundedCornerShape(3.dp))
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
             ) {
                 Text(
                     text = hero.badgeText.uppercase(),
-                    color = Color.White,
+                    color = EditorialTheme.Amber,
                     fontSize = 10.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.8.sp
                 )
             }
 
             Text(
                 text = hero.subtitle,
-                color = Color.White.copy(alpha = 0.80f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                color = EditorialTheme.BoneMuted,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = 0.4.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -839,12 +860,13 @@ private fun NetflixHeroBanner(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Large Netflix-style Title
+        // Cinema Grotesque headline title
         Text(
             text = hero.title,
-            color = Color.White,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.ExtraBold,
+            color = EditorialTheme.Bone,
+            fontSize = 35.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.4.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -854,24 +876,25 @@ private fun NetflixHeroBanner(
         // Description
         Text(
             text = hero.description,
-            color = Color.White.copy(alpha = 0.72f),
-            fontSize = 14.sp,
+            color = Color(0xFFA2A6B0),
+            fontSize = 13.5.sp,
             lineHeight = 19.sp,
+            letterSpacing = 0.2.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
 
-        // Optional Progress Bar for Continue Watching / Torrent Buffer
+        // Slim 3dp Amber progress bar for live Torrent / Jellyfin resume
         if (hero.progressFraction != null) {
             Spacer(modifier = Modifier.height(10.dp))
             LinearProgressIndicator(
                 progress = { hero.progressFraction.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .width(260.dp)
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = hero.accentColor,
-                trackColor = Color.White.copy(alpha = 0.18f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(1.5.dp)),
+                color = EditorialTheme.Amber,
+                trackColor = Color(0x28FFFFFF)
             )
         }
     }
@@ -886,28 +909,29 @@ private fun SelectorRowSection(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(start = 44.dp, bottom = 10.dp),
+            modifier = Modifier.padding(start = 48.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(4.dp, 18.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .size(2.dp, 13.dp)
                     .background(accent)
             )
             Text(
                 text = title,
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                color = EditorialTheme.Bone,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.8.sp
             )
             if (!subtitleBadge.isNullOrBlank()) {
                 Text(
                     text = "·  $subtitleBadge",
-                    color = Color.White.copy(alpha = 0.50f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    color = EditorialTheme.Slate,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 0.3.sp
                 )
             }
         }
@@ -930,8 +954,8 @@ private fun AppSelectorCard(
     var centerKeyDown by remember { mutableStateOf(false) }
     var longPressTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.11f else 1.0f,
-        animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing),
+        targetValue = if (isFocused) 1.05f else 1.0f,
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
         label = "appCardScale"
     )
 
@@ -985,19 +1009,19 @@ private fun AppSelectorCard(
                     }
                     false
                 }
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(6.dp))
                 .background(
-                    Brush.linearGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            app.dominantColor.copy(alpha = 0.95f),
-                            Color(0xFF111622)
+                            app.dominantColor.copy(alpha = 0.40f),
+                            EditorialTheme.CardSurface
                         )
                     )
                 )
                 .border(
-                    width = if (isFocused) 2.5.dp else 1.dp,
-                    color = if (isFocused) Color.White else Color.White.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(14.dp)
+                    width = 1.dp,
+                    color = if (isFocused) EditorialTheme.FocusBorder else EditorialTheme.CardBorder,
+                    shape = RoundedCornerShape(6.dp)
                 )
                 .combinedClickable(
                     onClick = onClick,
@@ -1017,51 +1041,52 @@ private fun AppSelectorCard(
                         .build(),
                     contentDescription = app.label,
                     contentScale = if (app.banner != null) ContentScale.Crop else ContentScale.Fit,
-                    modifier = if (app.banner != null) Modifier.fillMaxSize() else Modifier.size(56.dp)
+                    modifier = if (app.banner != null) Modifier.fillMaxSize() else Modifier.size(52.dp),
+                    alpha = if (isFocused) 1.0f else 0.88f
                 )
             } else {
                 Text(
                     text = app.label.take(2).uppercase(),
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
+                    color = EditorialTheme.Bone,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp
                 )
             }
 
-            // Subtle bottom gradient inside card when focused
-            if (isFocused) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0.55f to Color.Transparent,
-                                1.0f to Color.Black.copy(alpha = 0.65f)
-                            )
+            // Subtle bottom gradient inside card
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0.6f to Color.Transparent,
+                            1.0f to Color(0x99090A0C)
                         )
-                )
-            }
+                    )
+            )
 
-            // Favorite star badge
+            // Minimalist amber dot favorite badge
             if (app.isFavorite) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(8.dp)
+                        .padding(7.dp)
+                        .size(5.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE50914))
+                        .background(EditorialTheme.Amber)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(7.dp))
 
         Text(
             text = app.label,
-            color = if (isFocused) Color.White else Color.White.copy(alpha = 0.68f),
-            fontSize = 12.sp,
-            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
+            color = if (isFocused) EditorialTheme.Bone else EditorialTheme.Slate,
+            fontSize = 11.5.sp,
+            fontWeight = if (isFocused) FontWeight.SemiBold else FontWeight.Normal,
+            letterSpacing = 0.3.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1080,25 +1105,25 @@ private fun TorrentSessionCard(
     var centerKeyDown by remember { mutableStateOf(false) }
     var longPressTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.09f else 1.0f,
-        animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing),
+        targetValue = if (isFocused) 1.05f else 1.0f,
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
         label = "torrentCardScale"
     )
 
     val pct = (session.bufferProgress * 100).toInt()
-    val statusColor = when {
-        session.paused -> Color(0xFFF59E0B)
-        session.bufferReady -> Color(0xFF22C55E)
-        else -> Color(0xFF38BDF8)
+    val statusText = when {
+        session.paused -> "PAUSADO"
+        session.bufferReady -> "LISTO PARA REPRODUCIR"
+        else -> "BUFFER $pct%"
     }
 
     Column(
-        modifier = Modifier.width(230.dp),
+        modifier = Modifier.width(220.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Box(
             modifier = Modifier
-                .size(230.dp, 118.dp)
+                .size(220.dp, 108.dp)
                 .scale(scale)
                 .onFocusChanged {
                     isFocused = it.isFocused
@@ -1140,22 +1165,18 @@ private fun TorrentSessionCard(
                     }
                     false
                 }
-                .clip(RoundedCornerShape(14.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(Color(0xFF0F2942), Color(0xFF091326))
-                    )
-                )
+                .clip(RoundedCornerShape(6.dp))
+                .background(EditorialTheme.CardSurface)
                 .border(
-                    width = if (isFocused) 2.5.dp else 1.dp,
-                    color = if (isFocused) Color.White else statusColor.copy(alpha = 0.45f),
-                    shape = RoundedCornerShape(14.dp)
+                    width = 1.dp,
+                    color = if (isFocused) EditorialTheme.FocusBorder else EditorialTheme.CardBorder,
+                    shape = RoundedCornerShape(6.dp)
                 )
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
-                .padding(14.dp)
+                .padding(12.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -1167,27 +1188,24 @@ private fun TorrentSessionCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
+                            .size(5.dp)
                             .clip(CircleShape)
-                            .background(statusColor)
+                            .background(EditorialTheme.Amber)
                     )
                     Text(
-                        text = when {
-                            session.paused -> "PAUSADO"
-                            session.bufferReady -> "LISTO PARA REPRODUCIR"
-                            else -> "PREPARANDO BUFFER $pct%"
-                        },
-                        color = statusColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.ExtraBold
+                        text = statusText,
+                        color = EditorialTheme.Amber,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.2.sp
                     )
                 }
 
                 Text(
                     text = session.selectedFile?.fileName ?: session.title,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = EditorialTheme.Bone,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1196,21 +1214,22 @@ private fun TorrentSessionCard(
                     progress = { session.bufferProgress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = statusColor,
-                    trackColor = Color.White.copy(alpha = 0.15f)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(1.5.dp)),
+                    color = EditorialTheme.Amber,
+                    trackColor = Color(0x28FFFFFF)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(7.dp))
 
         Text(
-            text = "Torrent Stream · ${formatBytes(session.bufferedBytes + session.prefetchedBytes)} en caché",
-            color = if (isFocused) Color.White else Color.White.copy(alpha = 0.68f),
-            fontSize = 12.sp,
-            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
+            text = "Torrent · ${formatBytes(session.bufferedBytes + session.prefetchedBytes)}",
+            color = if (isFocused) EditorialTheme.Bone else EditorialTheme.Slate,
+            fontSize = 11.5.sp,
+            fontWeight = if (isFocused) FontWeight.SemiBold else FontWeight.Normal,
+            letterSpacing = 0.3.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1231,13 +1250,13 @@ private fun JellyfinMediaCard(
     var centerKeyDown by remember { mutableStateOf(false) }
     var longPressTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.09f else 1.0f,
-        animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing),
+        targetValue = if (isFocused) 1.05f else 1.0f,
+        animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
         label = "jfCardScale"
     )
 
-    val cardWidth = if (isResume) 210.dp else 148.dp
-    val cardHeight = if (isResume) 118.dp else 210.dp
+    val cardWidth = if (isResume) 200.dp else 132.dp
+    val cardHeight = if (isResume) 112.dp else 198.dp
     val imageUrl = if (isResume) item.backdropUrl else item.posterUrl
 
     Column(
@@ -1288,12 +1307,12 @@ private fun JellyfinMediaCard(
                     }
                     false
                 }
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF131B2E))
+                .clip(RoundedCornerShape(6.dp))
+                .background(EditorialTheme.CardSurface)
                 .border(
-                    width = if (isFocused) 2.5.dp else 1.dp,
-                    color = if (isFocused) Color.White else Color.White.copy(alpha = 0.14f),
-                    shape = RoundedCornerShape(14.dp)
+                    width = 1.dp,
+                    color = if (isFocused) EditorialTheme.FocusBorder else EditorialTheme.CardBorder,
+                    shape = RoundedCornerShape(6.dp)
                 )
                 .combinedClickable(
                     onClick = onClick,
@@ -1307,7 +1326,8 @@ private fun JellyfinMediaCard(
                     .build(),
                 contentDescription = item.title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                alpha = if (isFocused) 1.0f else 0.88f
             )
 
             Box(
@@ -1316,7 +1336,7 @@ private fun JellyfinMediaCard(
                     .background(
                         Brush.verticalGradient(
                             0.5f to Color.Transparent,
-                            1.0f to Color.Black.copy(alpha = 0.80f)
+                            1.0f to Color(0xCC090A0C)
                         )
                     )
             )
@@ -1327,20 +1347,21 @@ private fun JellyfinMediaCard(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(4.dp),
-                    color = Color(0xFF00A4DC),
-                    trackColor = Color.White.copy(alpha = 0.22f)
+                        .height(3.dp),
+                    color = EditorialTheme.Amber,
+                    trackColor = Color(0x28FFFFFF)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(7.dp))
 
         Text(
             text = item.title,
-            color = if (isFocused) Color.White else Color.White.copy(alpha = 0.75f),
-            fontSize = 12.sp,
-            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
+            color = if (isFocused) EditorialTheme.Bone else EditorialTheme.Slate,
+            fontSize = 11.5.sp,
+            fontWeight = if (isFocused) FontWeight.SemiBold else FontWeight.Normal,
+            letterSpacing = 0.3.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1364,12 +1385,12 @@ private fun AppOptionsDialog(
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF111726),
-            tonalElevation = 8.dp,
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF0F1117),
+            tonalElevation = 6.dp,
             modifier = Modifier
                 .width(420.dp)
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
+                .border(1.dp, EditorialTheme.CardBorder, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -1377,16 +1398,17 @@ private fun AppOptionsDialog(
             ) {
                 Text(
                     text = app.label,
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                    color = EditorialTheme.Bone,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text = app.packageName,
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    color = EditorialTheme.Slate,
+                    fontSize = 11.5.sp
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 DialogActionButton(
                     text = if (app.isFavorite) "★ Quitar de Favoritas" else "☆ Añadir a Favoritas",
@@ -1402,11 +1424,11 @@ private fun AppOptionsDialog(
                     }
                 }
                 DialogActionButton(
-                    text = "Ocultar aplicación (Bloatware)",
+                    text = "Ocultar aplicación",
                     onClick = onHideApp
                 )
                 DialogActionButton(
-                    text = "Información del sistema / Forzar detención",
+                    text = "Detalles del sistema",
                     onClick = onOpenSystemInfo
                 )
                 DialogActionButton(
@@ -1435,11 +1457,11 @@ private fun TorrentActionDialog(
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF111726),
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF0F1117),
             modifier = Modifier
                 .width(480.dp)
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
+                .border(1.dp, EditorialTheme.CardBorder, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -1447,15 +1469,16 @@ private fun TorrentActionDialog(
             ) {
                 Text(
                     text = session.title,
-                    color = Color.White,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = EditorialTheme.Bone,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.4.sp,
                     maxLines = 2
                 )
                 Text(
-                    text = "Buffer inicial: ${(session.bufferProgress * 100).toInt()}% (${formatBytes(session.bufferedBytes)} / ${formatBytes(session.bufferTarget)}) · Prefetch: ${formatBytes(session.prefetchedBytes)}",
-                    color = Color(0xFF38BDF8),
-                    fontSize = 12.sp
+                    text = "Buffer: ${(session.bufferProgress * 100).toInt()}% (${formatBytes(session.bufferedBytes)} / ${formatBytes(session.bufferTarget)}) · Caché: ${formatBytes(session.prefetchedBytes)}",
+                    color = EditorialTheme.Amber,
+                    fontSize = 11.5.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -1464,20 +1487,20 @@ private fun TorrentActionDialog(
                     modifier = Modifier.focusRequester(firstFocus),
                     onClick = onPlayVlc
                 )
-                DialogActionButton(text = "▶ Reproducir en Reproductor Integrado (ExoPlayer)", onClick = onPlayInternal)
+                DialogActionButton(text = "▶ Reproductor Integrado (ExoPlayer)", onClick = onPlayInternal)
                 DialogActionButton(text = "▶ Reproducir en Kodi", onClick = onPlayKodi)
                 DialogActionButton(
-                    text = if (session.paused) "⏯ Reanudar descarga de sesión" else "⏸ Pausar sesión en el servidor",
+                    text = if (session.paused) "⏯ Reanudar descarga" else "⏸ Pausar descarga",
                     onClick = onTogglePause
                 )
 
                 if (session.files.size > 1) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Seleccionar capítulo / archivo (${session.files.size}):",
-                        color = Color.White.copy(alpha = 0.75f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Seleccionar archivo (${session.files.size}):",
+                        color = EditorialTheme.BoneMuted,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium
                     )
                     LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
                         items(session.files, key = { it.id }) { file ->
@@ -1512,11 +1535,11 @@ private fun JellyfinActionDialog(
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF111726),
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF0F1117),
             modifier = Modifier
                 .width(450.dp)
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
+                .border(1.dp, EditorialTheme.CardBorder, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -1524,14 +1547,15 @@ private fun JellyfinActionDialog(
             ) {
                 Text(
                     text = item.title,
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                    color = EditorialTheme.Bone,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.4.sp
                 )
                 Text(
                     text = item.subtitle,
-                    color = Color(0xFF00A4DC),
-                    fontSize = 13.sp
+                    color = EditorialTheme.Amber,
+                    fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -1544,7 +1568,7 @@ private fun JellyfinActionDialog(
                     modifier = Modifier.focusRequester(firstFocus),
                     onClick = onPlayVlc
                 )
-                DialogActionButton(text = "▶ Reproducir en Reproductor Integrado$resumeLabel", onClick = onPlayInternal)
+                DialogActionButton(text = "▶ Reproductor Integrado$resumeLabel", onClick = onPlayInternal)
                 DialogActionButton(text = "▶ Abrir en App Jellyfin TV", onClick = onOpenJellyfinApp)
                 DialogActionButton(text = "▶ Reproducir en Kodi", onClick = onPlayKodi)
                 DialogActionButton(text = "Cerrar", onClick = onDismiss)
@@ -1566,25 +1590,26 @@ private fun HiddenAppsDialog(
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF111726),
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF0F1117),
             modifier = Modifier
                 .width(440.dp)
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
+                .border(1.dp, EditorialTheme.CardBorder, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Aplicaciones Ocultas (${hiddenApps.size})",
-                    color = Color.White,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "Aplicaciones Archivadas (${hiddenApps.size})",
+                    color = EditorialTheme.Bone,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.4.sp
                 )
                 Text(
-                    text = "Pulsa sobre cualquier aplicación para volver a mostrarla en la pantalla principal:",
-                    color = Color.White.copy(alpha = 0.65f),
+                    text = "Selecciona una aplicación para restaurarla en la cuadrícula principal:",
+                    color = EditorialTheme.Slate,
                     fontSize = 12.sp
                 )
                 LazyColumn(
@@ -1627,11 +1652,11 @@ private fun ServerSettingsDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF111726),
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF0F1117),
             modifier = Modifier
                 .width(520.dp)
-                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
+                .border(1.dp, EditorialTheme.CardBorder, RoundedCornerShape(8.dp))
         ) {
             Column(
                 modifier = Modifier
@@ -1641,15 +1666,16 @@ private fun ServerSettingsDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Ajustes del Servidor y Reproductor",
-                    color = Color.White,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "Ajustes de Servidor y Reproducción",
+                    color = EditorialTheme.Bone,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.4.sp
                 )
                 Text(
-                    text = "Reproductor preferido al pulsar OK:",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 13.sp
+                    text = "Reproductor predeterminado al pulsar OK:",
+                    color = EditorialTheme.Slate,
+                    fontSize = 12.5.sp
                 )
 
                 PreferredPlayer.entries.forEachIndexed { index, option ->
@@ -1664,21 +1690,21 @@ private fun ServerSettingsDialog(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Servidores Homelab:",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 13.sp,
+                    color = EditorialTheme.BoneMuted,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold
                 )
 
                 OutlinedTextField(
                     value = tsUrl,
                     onValueChange = { tsUrl = it },
-                    label = { Text("URL Torrent Stream Web", color = Color.White.copy(alpha = 0.6f)) },
+                    label = { Text("URL Torrent Stream Web", color = EditorialTheme.Slate) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                        focusedTextColor = EditorialTheme.Bone,
+                        unfocusedTextColor = EditorialTheme.BoneMuted,
+                        focusedBorderColor = EditorialTheme.Amber,
+                        unfocusedBorderColor = EditorialTheme.CardBorder
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1686,13 +1712,13 @@ private fun ServerSettingsDialog(
                 OutlinedTextField(
                     value = jfUrl,
                     onValueChange = { jfUrl = it },
-                    label = { Text("URL Jellyfin", color = Color.White.copy(alpha = 0.6f)) },
+                    label = { Text("URL Jellyfin", color = EditorialTheme.Slate) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF00A4DC),
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                        focusedTextColor = EditorialTheme.Bone,
+                        unfocusedTextColor = EditorialTheme.BoneMuted,
+                        focusedBorderColor = EditorialTheme.Amber,
+                        unfocusedBorderColor = EditorialTheme.CardBorder
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1700,13 +1726,13 @@ private fun ServerSettingsDialog(
                 OutlinedTextField(
                     value = jfApiKey,
                     onValueChange = { jfApiKey = it },
-                    label = { Text("API Key de Jellyfin", color = Color.White.copy(alpha = 0.6f)) },
+                    label = { Text("API Key Jellyfin", color = EditorialTheme.Slate) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF00A4DC),
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                        focusedTextColor = EditorialTheme.Bone,
+                        unfocusedTextColor = EditorialTheme.BoneMuted,
+                        focusedBorderColor = EditorialTheme.Amber,
+                        unfocusedBorderColor = EditorialTheme.CardBorder
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1714,7 +1740,7 @@ private fun ServerSettingsDialog(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 DialogActionButton(
-                    text = "⬇ Buscar e instalar actualización del servidor",
+                    text = "⬇ Comprobar e instalar actualización del servidor",
                     onClick = onInstallUpdate
                 )
 
@@ -1755,16 +1781,22 @@ private fun DialogActionButton(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (focused) Color.White else Color.White.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (focused) EditorialTheme.Bone else Color(0xFF161820))
+            .border(
+                width = 1.dp,
+                color = if (focused) EditorialTheme.Bone else EditorialTheme.SlateDark,
+                shape = RoundedCornerShape(6.dp)
+            )
             .combinedClickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 11.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Text(
             text = text,
-            color = if (focused) Color(0xFF090D16) else Color.White,
-            fontSize = 14.sp,
-            fontWeight = if (focused) FontWeight.Bold else FontWeight.Medium
+            color = if (focused) EditorialTheme.Obsidian else EditorialTheme.Bone,
+            fontSize = 13.sp,
+            fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Normal,
+            letterSpacing = 0.3.sp
         )
     }
 }

@@ -13,8 +13,8 @@ data class TvAppInfo(
     val banner: Drawable?,
     val isFavorite: Boolean = false,
     val isSystemApp: Boolean = false,
-    val dominantColor: Color = Color(0xFF1F2937),
-    val accentColor: Color = Color(0xFFE50914),
+    val dominantColor: Color = Color(0xFF14161D),
+    val accentColor: Color = Color(0xFFD4A373),
     val curatedBackdropUrl: String? = null,
     val curatedSubtitle: String? = null,
     val curatedDescription: String? = null
@@ -102,8 +102,8 @@ data class HeroPreview(
     val description: String,
     val backdropUrl: String? = null,
     val fallbackDrawable: Drawable? = null,
-    val primaryColor: Color = Color(0xFF141824),
-    val accentColor: Color = Color(0xFFE50914),
+    val primaryColor: Color = Color(0xFF0D0E11),
+    val accentColor: Color = Color(0xFFD4A373),
     val progressFraction: Float? = null
 )
 
