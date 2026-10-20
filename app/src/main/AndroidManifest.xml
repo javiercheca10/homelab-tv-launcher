@@ -32,7 +32,7 @@
             android:launchMode="singleTask"
             android:screenOrientation="landscape"
             android:stateNotNeeded="true">
-            <intent-filter>
+            <intent-filter android:priority="2">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />

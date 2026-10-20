@@ -11,11 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.tv.foundation.PivotOffsets
-import androidx.tv.foundation.lazy.list.TvLazyColumn
-import androidx.tv.foundation.lazy.list.TvLazyRow
-import androidx.tv.foundation.lazy.list.items
-import androidx.tv.foundation.lazy.list.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -171,12 +170,11 @@ fun HomeScreen(
                     .padding(start = 44.dp, top = 10.dp, bottom = 6.dp)
             )
 
-            // 4 Smooth Horizontal Rows with D-Pad Pivot Scrolling
-            TvLazyColumn(
+            // 4 Smooth Horizontal Rows with D-Pad Scrolling
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                pivotOffsets = PivotOffsets(0.08f, 0.08f),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 36.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
@@ -184,8 +182,7 @@ fun HomeScreen(
                 if (favoriteApps.isNotEmpty()) {
                     item(key = "row_favorites") {
                         SelectorRowSection(title = "Favoritas", accent = Color(0xFFE50914)) {
-                            TvLazyRow(
-                                pivotOffsets = PivotOffsets(0.08f, 0.08f),
+                            LazyRow(
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -216,8 +213,7 @@ fun HomeScreen(
                             subtitleBadge = if (torrentSessions.isNotEmpty()) "${torrentSessions.size} Torrent activo" else null,
                             accent = Color(0xFF38BDF8)
                         ) {
-                            TvLazyRow(
-                                pivotOffsets = PivotOffsets(0.08f, 0.08f),
+                            LazyRow(
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -267,8 +263,7 @@ fun HomeScreen(
                         subtitleBadge = "Mantén OK o pulsa MENÚ para organizar u ocultar",
                         accent = Color(0xFFA855F7)
                     ) {
-                        TvLazyRow(
-                            pivotOffsets = PivotOffsets(0.08f, 0.08f),
+                        LazyRow(
                             contentPadding = PaddingValues(horizontal = 44.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -298,8 +293,7 @@ fun HomeScreen(
                             subtitleBadge = "Biblioteca Multimedia",
                             accent = Color(0xFF00A4DC)
                         ) {
-                            TvLazyRow(
-                                pivotOffsets = PivotOffsets(0.08f, 0.08f),
+                            LazyRow(
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -1485,7 +1479,7 @@ private fun TorrentActionDialog(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                    TvLazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
+                    LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
                         items(session.files, key = { it.id }) { file ->
                             val isSelected = file.id == session.selected
                             DialogActionButton(
@@ -1593,7 +1587,7 @@ private fun HiddenAppsDialog(
                     color = Color.White.copy(alpha = 0.65f),
                     fontSize = 12.sp
                 )
-                TvLazyColumn(
+                LazyColumn(
                     modifier = Modifier.heightIn(max = 260.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
