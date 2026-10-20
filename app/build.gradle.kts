@@ -34,11 +34,25 @@ android {
         buildConfigField("String", "DEFAULT_TAILSCALE_IP", "\"${prop("tailscale.ip", "")}\"")
     }
 
+    signingConfigs {
+        create("release") {
+            val ksFile = rootProject.file("keystore/release.jks")
+            if (ksFile.exists()) {
+                storeFile = ksFile
+                storePassword = prop("signing.storePassword", "homelab123")
+                keyAlias = prop("signing.keyAlias", "homelab")
+                keyPassword = prop("signing.keyPassword", "homelab123")
+            } else {
+                initWith(signingConfigs.getByName("debug"))
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
