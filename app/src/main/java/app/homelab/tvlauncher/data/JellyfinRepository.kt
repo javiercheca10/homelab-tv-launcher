@@ -147,8 +147,10 @@ class JellyfinRepository {
             trimmed
         }
         val uri = runCatching { URL(withProtocol) }.getOrNull() ?: return withProtocol
-        return if (uri.port == -1 && uri.host != null && !uri.host.contains(":") && uri.path.isEmpty() && defaultPort > 0) {
-            "$withProtocol:$defaultPort"
+        val isHttps = uri.protocol.equals("https", ignoreCase = true)
+        return if (!isHttps && uri.port == -1 && defaultPort > 0 && uri.host != null && !uri.host.contains(":")) {
+            val path = uri.path ?: ""
+            "http://${uri.host}:$defaultPort$path"
         } else {
             withProtocol
         }

@@ -486,7 +486,9 @@ private fun TopNavigationBar(
     onOpenAndroidSettings: () -> Unit,
     onFocusHero: (HeroPreview) -> Unit
 ) {
-    var timeString by remember { mutableStateOf("") }
+    var timeString by remember {
+        mutableStateOf(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()))
+    }
     LaunchedEffect(Unit) {
         val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
         while (true) {
