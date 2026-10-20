@@ -1,7 +1,5 @@
 package app.homelab.tvlauncher.ui
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
@@ -9,16 +7,15 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.tv.foundation.PivotOffsets
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
+import androidx.tv.foundation.lazy.list.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -30,12 +27,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -64,7 +63,7 @@ fun HomeScreen(
     settings: LauncherSettings,
     onLaunchApp: (TvAppInfo) -> Unit,
     onToggleFavorite: (TvAppInfo) -> Unit,
-    onMoveApp: (TvAppInfo, Int) -> Unit,
+    onMoveApp: (TvAppInfo, Int, Boolean) -> Unit,
     onHideApp: (TvAppInfo, Boolean) -> Unit,
     onOpenAppSettings: (TvAppInfo) -> Unit,
     onOpenTvInputs: () -> Unit,
@@ -76,6 +75,8 @@ fun HomeScreen(
     onTorrentSelectFile: (TorrentSession, Int) -> Unit
 ) {
     val context = LocalContext.current
+    val initialFocusRequester = remember { FocusRequester() }
+    var initialFocusDone by remember { mutableStateOf(false) }
 
     var currentHero by remember {
         mutableStateOf(
@@ -92,18 +93,41 @@ fun HomeScreen(
     }
 
     var selectedAppForMenu by remember { mutableStateOf<TvAppInfo?>(null) }
+    var selectedAppInFavRow by remember { mutableStateOf(false) }
     var selectedTorrentForDialog by remember { mutableStateOf<TorrentSession?>(null) }
     var selectedJellyfinForDialog by remember { mutableStateOf<JellyfinMediaItem?>(null) }
     var showHiddenAppsDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
 
-    // Set initial hero to first favorite or first app when loaded
-    LaunchedEffect(favoriteApps, allApps) {
+    // Set initial hero and request initial D-Pad focus on the first card when loaded
+    LaunchedEffect(favoriteApps.isNotEmpty(), allApps.isNotEmpty()) {
         if (currentHero.id == "welcome") {
             val first = favoriteApps.firstOrNull() ?: allApps.firstOrNull()
             if (first != null) {
-                currentHero = appToHero(first)
+                currentHero = appToHero(first, isFavRow = favoriteApps.isNotEmpty())
             }
+        }
+        if (!initialFocusDone && (favoriteApps.isNotEmpty() || allApps.isNotEmpty())) {
+            initialFocusDone = true
+            delay(80L)
+            runCatching { initialFocusRequester.requestFocus() }
+        }
+    }
+
+    // Keep Hero Banner progress and buffer stats live when focused on an active Torrent session
+    LaunchedEffect(torrentSessions) {
+        if (currentHero.id.startsWith("ts_")) {
+            val activeId = currentHero.id.removePrefix("ts_")
+            torrentSessions.firstOrNull { it.id == activeId }?.let { updatedSession ->
+                currentHero = torrentToHero(updatedSession)
+            }
+        }
+    }
+
+    // Auto-close HiddenAppsDialog when all hidden apps have been restored
+    LaunchedEffect(hiddenApps.size) {
+        if (hiddenApps.isEmpty() && showHiddenAppsDialog) {
+            showHiddenAppsDialog = false
         }
     }
 
@@ -159,14 +183,18 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                items(favoriteApps, key = { "fav_${it.packageName}" }) { app ->
+                                itemsIndexed(favoriteApps, key = { _, app -> "fav_${app.packageName}" }) { idx, app ->
                                     AppSelectorCard(
                                         app = app,
                                         cardWidth = 172.dp,
                                         cardHeight = 100.dp,
+                                        modifier = if (idx == 0) Modifier.focusRequester(initialFocusRequester) else Modifier,
                                         onFocused = { currentHero = appToHero(app, isFavRow = true) },
                                         onClick = { onLaunchApp(app) },
-                                        onLongClick = { selectedAppForMenu = app }
+                                        onLongClick = {
+                                            selectedAppInFavRow = true
+                                            selectedAppForMenu = app
+                                        }
                                     )
                                 }
                             }
@@ -238,14 +266,18 @@ fun HomeScreen(
                             contentPadding = PaddingValues(horizontal = 44.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            items(allApps, key = { "app_${it.packageName}" }) { app ->
+                            itemsIndexed(allApps, key = { _, app -> "app_${app.packageName}" }) { idx, app ->
                                 AppSelectorCard(
                                     app = app,
                                     cardWidth = 158.dp,
                                     cardHeight = 94.dp,
+                                    modifier = if (favoriteApps.isEmpty() && idx == 0) Modifier.focusRequester(initialFocusRequester) else Modifier,
                                     onFocused = { currentHero = appToHero(app, isFavRow = false) },
                                     onClick = { onLaunchApp(app) },
-                                    onLongClick = { selectedAppForMenu = app }
+                                    onLongClick = {
+                                        selectedAppInFavRow = false
+                                        selectedAppForMenu = app
+                                    }
                                 )
                             }
                         }
@@ -298,10 +330,10 @@ fun HomeScreen(
                     selectedAppForMenu = null
                 },
                 onMoveLeft = {
-                    onMoveApp(app, -1)
+                    onMoveApp(app, -1, selectedAppInFavRow)
                 },
                 onMoveRight = {
-                    onMoveApp(app, 1)
+                    onMoveApp(app, 1, selectedAppInFavRow)
                 },
                 onHideApp = {
                     onHideApp(app, true)
@@ -388,34 +420,55 @@ fun HomeScreen(
     }
 }
 
+private data class BackdropVisualTarget(
+    val id: String,
+    val backdropUrl: String?,
+    val fallbackDrawable: Drawable?,
+    val primaryColor: Color,
+    val accentColor: Color
+)
+
 @Composable
 private fun ImmersiveBackdrop(hero: HeroPreview) {
     val context = LocalContext.current
+    val visualTarget = remember(hero.id, hero.backdropUrl, hero.fallbackDrawable, hero.primaryColor, hero.accentColor) {
+        BackdropVisualTarget(
+            id = hero.id,
+            backdropUrl = hero.backdropUrl,
+            fallbackDrawable = hero.fallbackDrawable,
+            primaryColor = hero.primaryColor,
+            accentColor = hero.accentColor
+        )
+    }
 
     Crossfade(
-        targetState = hero,
+        targetState = visualTarget,
         animationSpec = tween(durationMillis = 450, easing = FastOutSlowInEasing),
         label = "ImmersiveBackdropCrossfade"
     ) { state ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Base atmospheric radial gradient matching the focused app/movie colors
+            // Base atmospheric radial gradient scaled dynamically to screen resolution (720p/1080p/4K)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                state.primaryColor.copy(alpha = 0.85f),
-                                state.accentColor.copy(alpha = 0.22f),
-                                Color(0xFF07090E)
-                            ),
-                            center = Offset(1400f, 260f),
-                            radius = 1250f
+                    .drawBehind {
+                        val centerOffset = Offset(size.width * 0.73f, size.height * 0.24f)
+                        val gradRadius = (size.width * 0.65f).coerceAtLeast(400f)
+                        drawRect(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    state.primaryColor.copy(alpha = 0.85f),
+                                    state.accentColor.copy(alpha = 0.22f),
+                                    Color(0xFF07090E)
+                                ),
+                                center = centerOffset,
+                                radius = gradRadius
+                            )
                         )
-                    )
+                    }
             )
 
-            // Full-screen artwork on the upper-right with subtle protagonism (36% opacity)
+            // Full-screen artwork on the upper-right with subtle protagonism (38% opacity)
             if (!state.backdropUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -429,9 +482,12 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
                         .alpha(0.38f)
                 )
             } else if (state.fallbackDrawable != null) {
+                val safeDrawable = remember(state.id, state.fallbackDrawable) {
+                    state.fallbackDrawable.constantState?.newDrawable()?.mutate() ?: state.fallbackDrawable
+                }
                 AsyncImage(
                     model = ImageRequest.Builder(context)
-                        .data(state.fallbackDrawable)
+                        .data(safeDrawable)
                         .crossfade(true)
                         .build(),
                     contentDescription = null,
@@ -686,7 +742,6 @@ private fun TopActionChip(
                 shape = RoundedCornerShape(50)
             )
             .combinedClickable(onClick = onClick)
-            .focusable()
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -822,11 +877,14 @@ private fun AppSelectorCard(
     app: TvAppInfo,
     cardWidth: Dp,
     cardHeight: Dp,
+    modifier: Modifier = Modifier,
     onFocused: () -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    var centerKeyDown by remember { mutableStateOf(false) }
+    var longPressTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.11f else 1.0f,
         animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing),
@@ -840,24 +898,45 @@ private fun AppSelectorCard(
         modifier = Modifier.width(cardWidth)
     ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .size(cardWidth, cardHeight)
                 .scale(scale)
                 .onFocusChanged {
                     isFocused = it.isFocused
+                    if (!it.isFocused) {
+                        centerKeyDown = false
+                        longPressTriggered = false
+                    }
                     if (it.isFocused) onFocused()
                 }
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown) {
-                        if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
-                            onLongClick()
-                            return@onPreviewKeyEvent true
+                    when (event.type) {
+                        KeyEventType.KeyDown -> {
+                            if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
+                                onLongClick()
+                                return@onPreviewKeyEvent true
+                            }
+                            if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                                if (event.nativeKeyEvent.repeatCount == 0) {
+                                    centerKeyDown = true
+                                    longPressTriggered = false
+                                } else if (centerKeyDown && !longPressTriggered &&
+                                    (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount >= 1)
+                                ) {
+                                    longPressTriggered = true
+                                    onLongClick()
+                                }
+                                return@onPreviewKeyEvent true
+                            }
                         }
-                        if ((event.key == Key.DirectionCenter || event.key == Key.Enter) &&
-                            (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount == 1)
-                        ) {
-                            onLongClick()
-                            return@onPreviewKeyEvent true
+                        KeyEventType.KeyUp -> {
+                            if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                                val shouldClick = centerKeyDown && !longPressTriggered
+                                centerKeyDown = false
+                                longPressTriggered = false
+                                if (shouldClick) onClick()
+                                return@onPreviewKeyEvent true
+                            }
                         }
                     }
                     false
@@ -879,11 +958,13 @@ private fun AppSelectorCard(
                 .combinedClickable(
                     onClick = onClick,
                     onLongClick = onLongClick
-                )
-                .focusable(),
+                ),
             contentAlignment = Alignment.Center
         ) {
-            val visualData = app.banner ?: app.icon
+            val visualData = remember(app.packageName, app.banner, app.icon) {
+                val raw = app.banner ?: app.icon
+                raw?.constantState?.newDrawable()?.mutate() ?: raw
+            }
             if (visualData != null) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -952,6 +1033,8 @@ private fun TorrentSessionCard(
     onLongClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    var centerKeyDown by remember { mutableStateOf(false) }
+    var longPressTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.09f else 1.0f,
         animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing),
@@ -975,19 +1058,40 @@ private fun TorrentSessionCard(
                 .scale(scale)
                 .onFocusChanged {
                     isFocused = it.isFocused
+                    if (!it.isFocused) {
+                        centerKeyDown = false
+                        longPressTriggered = false
+                    }
                     if (it.isFocused) onFocused()
                 }
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown) {
-                        if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
-                            onLongClick()
-                            return@onPreviewKeyEvent true
+                    when (event.type) {
+                        KeyEventType.KeyDown -> {
+                            if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
+                                onLongClick()
+                                return@onPreviewKeyEvent true
+                            }
+                            if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                                if (event.nativeKeyEvent.repeatCount == 0) {
+                                    centerKeyDown = true
+                                    longPressTriggered = false
+                                } else if (centerKeyDown && !longPressTriggered &&
+                                    (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount >= 1)
+                                ) {
+                                    longPressTriggered = true
+                                    onLongClick()
+                                }
+                                return@onPreviewKeyEvent true
+                            }
                         }
-                        if ((event.key == Key.DirectionCenter || event.key == Key.Enter) &&
-                            (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount == 1)
-                        ) {
-                            onLongClick()
-                            return@onPreviewKeyEvent true
+                        KeyEventType.KeyUp -> {
+                            if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                                val shouldClick = centerKeyDown && !longPressTriggered
+                                centerKeyDown = false
+                                longPressTriggered = false
+                                if (shouldClick) onClick()
+                                return@onPreviewKeyEvent true
+                            }
                         }
                     }
                     false
@@ -1007,7 +1111,6 @@ private fun TorrentSessionCard(
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
-                .focusable()
                 .padding(14.dp)
         ) {
             Column(
@@ -1081,6 +1184,8 @@ private fun JellyfinMediaCard(
 ) {
     val context = LocalContext.current
     var isFocused by remember { mutableStateOf(false) }
+    var centerKeyDown by remember { mutableStateOf(false) }
+    var longPressTriggered by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.09f else 1.0f,
         animationSpec = tween(durationMillis = 190, easing = FastOutSlowInEasing),
@@ -1101,19 +1206,40 @@ private fun JellyfinMediaCard(
                 .scale(scale)
                 .onFocusChanged {
                     isFocused = it.isFocused
+                    if (!it.isFocused) {
+                        centerKeyDown = false
+                        longPressTriggered = false
+                    }
                     if (it.isFocused) onFocused()
                 }
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown) {
-                        if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
-                            onLongClick()
-                            return@onPreviewKeyEvent true
+                    when (event.type) {
+                        KeyEventType.KeyDown -> {
+                            if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
+                                onLongClick()
+                                return@onPreviewKeyEvent true
+                            }
+                            if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                                if (event.nativeKeyEvent.repeatCount == 0) {
+                                    centerKeyDown = true
+                                    longPressTriggered = false
+                                } else if (centerKeyDown && !longPressTriggered &&
+                                    (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount >= 1)
+                                ) {
+                                    longPressTriggered = true
+                                    onLongClick()
+                                }
+                                return@onPreviewKeyEvent true
+                            }
                         }
-                        if ((event.key == Key.DirectionCenter || event.key == Key.Enter) &&
-                            (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount == 1)
-                        ) {
-                            onLongClick()
-                            return@onPreviewKeyEvent true
+                        KeyEventType.KeyUp -> {
+                            if (event.key == Key.DirectionCenter || event.key == Key.Enter) {
+                                val shouldClick = centerKeyDown && !longPressTriggered
+                                centerKeyDown = false
+                                longPressTriggered = false
+                                if (shouldClick) onClick()
+                                return@onPreviewKeyEvent true
+                            }
                         }
                     }
                     false
@@ -1129,7 +1255,6 @@ private fun JellyfinMediaCard(
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
-                .focusable()
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
@@ -1188,6 +1313,10 @@ private fun AppOptionsDialog(
     onHideApp: () -> Unit,
     onOpenSystemInfo: () -> Unit
 ) {
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        runCatching { firstFocus.requestFocus() }
+    }
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1217,6 +1346,7 @@ private fun AppOptionsDialog(
 
                 DialogActionButton(
                     text = if (app.isFavorite) "★ Quitar de Favoritas" else "☆ Añadir a Favoritas",
+                    modifier = Modifier.focusRequester(firstFocus),
                     onClick = onToggleFavorite
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1254,6 +1384,10 @@ private fun TorrentActionDialog(
     onTogglePause: () -> Unit,
     onSelectFile: (Int) -> Unit
 ) {
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        runCatching { firstFocus.requestFocus() }
+    }
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1281,7 +1415,11 @@ private fun TorrentActionDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
-                DialogActionButton(text = "▶ Reproducir en VLC", onClick = onPlayVlc)
+                DialogActionButton(
+                    text = "▶ Reproducir en VLC",
+                    modifier = Modifier.focusRequester(firstFocus),
+                    onClick = onPlayVlc
+                )
                 DialogActionButton(text = "▶ Reproducir en Reproductor Integrado (ExoPlayer)", onClick = onPlayInternal)
                 DialogActionButton(text = "▶ Reproducir en Kodi", onClick = onPlayKodi)
                 DialogActionButton(
@@ -1323,6 +1461,10 @@ private fun JellyfinActionDialog(
     onPlayKodi: () -> Unit,
     onPlayInternal: () -> Unit
 ) {
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        runCatching { firstFocus.requestFocus() }
+    }
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1353,7 +1495,11 @@ private fun JellyfinActionDialog(
                     " (${formatDuration(item.resumePositionMs)})"
                 } else ""
 
-                DialogActionButton(text = "▶ Reproducir en VLC$resumeLabel", onClick = onPlayVlc)
+                DialogActionButton(
+                    text = "▶ Reproducir en VLC$resumeLabel",
+                    modifier = Modifier.focusRequester(firstFocus),
+                    onClick = onPlayVlc
+                )
                 DialogActionButton(text = "▶ Reproducir en Reproductor Integrado$resumeLabel", onClick = onPlayInternal)
                 DialogActionButton(text = "▶ Abrir en App Jellyfin TV", onClick = onOpenJellyfinApp)
                 DialogActionButton(text = "▶ Reproducir en Kodi", onClick = onPlayKodi)
@@ -1369,6 +1515,10 @@ private fun HiddenAppsDialog(
     onRestoreApp: (TvAppInfo) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val closeFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        runCatching { closeFocus.requestFocus() }
+    }
     BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1404,7 +1554,11 @@ private fun HiddenAppsDialog(
                         )
                     }
                 }
-                DialogActionButton(text = "Cerrar", onClick = onDismiss)
+                DialogActionButton(
+                    text = "Cerrar",
+                    modifier = Modifier.focusRequester(closeFocus),
+                    onClick = onDismiss
+                )
             }
         }
     }
@@ -1416,6 +1570,10 @@ private fun ServerSettingsDialog(
     onSave: (LauncherSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        runCatching { firstFocus.requestFocus() }
+    }
     BackHandler { onDismiss() }
     var selectedPlayer by remember { mutableStateOf(current.preferredPlayer) }
     var jfUrl by remember { mutableStateOf(current.jellyfinUrl) }
@@ -1449,10 +1607,11 @@ private fun ServerSettingsDialog(
                     fontSize = 13.sp
                 )
 
-                PreferredPlayer.entries.forEach { option ->
+                PreferredPlayer.entries.forEachIndexed { index, option ->
                     val prefix = if (selectedPlayer == option) "● " else "○ "
                     DialogActionButton(
                         text = "$prefix${option.label}",
+                        modifier = if (index == 0) Modifier.focusRequester(firstFocus) else Modifier,
                         onClick = { selectedPlayer = option }
                     )
                 }
@@ -1538,17 +1697,17 @@ private fun ServerSettingsDialog(
 @Composable
 private fun DialogActionButton(
     text: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
             .clip(RoundedCornerShape(10.dp))
             .background(if (focused) Color.White else Color.White.copy(alpha = 0.08f))
             .combinedClickable(onClick = onClick)
-            .focusable()
             .padding(horizontal = 16.dp, vertical = 11.dp)
     ) {
         Text(

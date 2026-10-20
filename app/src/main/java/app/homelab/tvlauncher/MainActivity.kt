@@ -156,8 +156,8 @@ class MainActivity : ComponentActivity() {
                     appRepo.toggleFavorite(app.packageName)
                     refreshAppsAsync()
                 },
-                onMoveApp = { app, dir ->
-                    appRepo.moveApp(app.packageName, dir, visibleAppsState.map { it.packageName })
+                onMoveApp = { app, dir, inFavRow ->
+                    appRepo.moveApp(app.packageName, dir, visibleAppsState, inFavRow)
                     refreshAppsAsync()
                 },
                 onHideApp = { app, hide ->

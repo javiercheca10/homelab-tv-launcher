@@ -36,8 +36,9 @@ class TorrentStreamRepository {
     suspend fun pauseOrResume(baseUrl: String, sessionId: String, pause: Boolean): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
+                val cleanBase = normalizeUrl(baseUrl, -1) ?: return@runCatching false
                 val action = if (pause) "pause" else "resume"
-                httpPost("$baseUrl/api/tv/sessions/$sessionId/$action", "{}")
+                httpPost("$cleanBase/api/tv/sessions/$sessionId/$action", "{}")
                 true
             }.getOrDefault(false)
         }
@@ -45,15 +46,18 @@ class TorrentStreamRepository {
     suspend fun selectFile(baseUrl: String, sessionId: String, fileIndex: Int): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
-                httpPost("$baseUrl/api/tv/sessions/$sessionId/select", """{"index":$fileIndex}""")
+                val cleanBase = normalizeUrl(baseUrl, -1) ?: return@runCatching false
+                httpPost("$cleanBase/api/tv/sessions/$sessionId/select", """{"index":$fileIndex}""")
                 true
             }.getOrDefault(false)
         }
 
     private fun buildCandidateUrls(primaryUrl: String, fallbackUrl: String): List<String> {
         val list = mutableListOf<String>()
-        normalizeUrl(primaryUrl, 8787)?.let { list.add(it) }
-        normalizeUrl(fallbackUrl, 8787)?.let { if (it !in list) list.add(it) }
+        val normPrimary = normalizeUrl(primaryUrl, -1)
+        val inferredPort = normPrimary?.let { runCatching { URL(it).port }.getOrDefault(-1) } ?: -1
+        if (normPrimary != null) list.add(normPrimary)
+        normalizeUrl(fallbackUrl, inferredPort)?.let { if (it !in list) list.add(it) }
         return list
     }
 

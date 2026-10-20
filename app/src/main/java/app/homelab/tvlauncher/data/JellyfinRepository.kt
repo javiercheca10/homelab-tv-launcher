@@ -22,6 +22,9 @@ private data class JellyfinResumeEnvelope(
 
 class JellyfinRepository {
 
+    @Volatile
+    private var cachedUserId: String = ""
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -31,21 +34,28 @@ class JellyfinRepository {
     suspend fun fetchLibrary(settings: LauncherSettings): Result<Pair<List<JellyfinMediaItem>, List<JellyfinMediaItem>>> =
         withContext(Dispatchers.IO) {
             if (settings.jellyfinApiKey.isBlank()) {
-                return@withContext Result.success(emptyList<JellyfinMediaItem>() to emptyList())
+                return@withContext Result.failure(IllegalStateException("API Key de Jellyfin no configurada"))
             }
 
             val candidates = buildCandidateUrls(settings.jellyfinUrl, settings.tailscaleIp)
+            if (candidates.isEmpty()) {
+                return@withContext Result.failure(IllegalStateException("URL de Jellyfin no configurada"))
+            }
+
             var lastError: Throwable? = null
 
             for (baseUrl in candidates) {
                 try {
                     val apiKey = settings.jellyfinApiKey
-                    var userId = settings.jellyfinUserId
+                    var userId = settings.jellyfinUserId.ifBlank { cachedUserId }
 
                     if (userId.isBlank()) {
                         val usersJson = httpGet("$baseUrl/Users", apiKey)
                         val users = json.decodeFromString(ListSerializer(JellyfinUserDto.serializer()), usersJson)
-                        userId = users.firstOrNull()?.id ?: ""
+                        userId = users.firstOrNull { it.id.isNotBlank() }?.id ?: ""
+                        if (userId.isNotBlank()) {
+                            cachedUserId = userId
+                        }
                     }
 
                     if (userId.isBlank()) {
@@ -131,8 +141,10 @@ class JellyfinRepository {
 
     private fun buildCandidateUrls(primaryUrl: String, fallbackUrl: String): List<String> {
         val list = mutableListOf<String>()
-        normalizeUrl(primaryUrl, 8096)?.let { list.add(it) }
-        normalizeUrl(fallbackUrl, 8096)?.let { if (it !in list) list.add(it) }
+        val normPrimary = normalizeUrl(primaryUrl, -1)
+        val inferredPort = normPrimary?.let { runCatching { URL(it).port }.getOrDefault(-1) } ?: -1
+        if (normPrimary != null) list.add(normPrimary)
+        normalizeUrl(fallbackUrl, inferredPort)?.let { if (it !in list) list.add(it) }
         return list
     }
 

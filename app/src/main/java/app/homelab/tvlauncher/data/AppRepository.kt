@@ -127,14 +127,26 @@ class AppRepository(private val context: Context) {
         prefs.edit().putStringSet(KEY_HIDDEN, current).apply()
     }
 
-    fun moveApp(packageName: String, direction: Int, currentPackages: List<String>) {
-        val mutable = currentPackages.toMutableList()
+    fun moveApp(packageName: String, direction: Int, currentApps: List<TvAppInfo>, inFavoritesRow: Boolean = false) {
+        val mutable = currentApps.map { it.packageName }.toMutableList()
         val idx = mutable.indexOf(packageName)
         if (idx == -1) return
-        val newIdx = (idx + direction).coerceIn(0, mutable.lastIndex)
-        if (newIdx == idx) return
+
+        val targetIdx = if (inFavoritesRow) {
+            val favIndices = currentApps.mapIndexedNotNull { index, app -> if (app.isFavorite) index else null }
+            val posInFavs = favIndices.indexOf(idx)
+            if (posInFavs == -1) (idx + direction).coerceIn(0, mutable.lastIndex)
+            else {
+                val newPosInFavs = (posInFavs + direction).coerceIn(0, favIndices.lastIndex)
+                favIndices[newPosInFavs]
+            }
+        } else {
+            (idx + direction).coerceIn(0, mutable.lastIndex)
+        }
+
+        if (targetIdx == idx) return
         mutable.removeAt(idx)
-        mutable.add(newIdx, packageName)
+        mutable.add(targetIdx, packageName)
         prefs.edit().putString(KEY_ORDER, mutable.joinToString(",")).apply()
     }
 
@@ -189,16 +201,22 @@ class AppRepository(private val context: Context) {
     }
 
     fun openTvInputs() {
-        val candidateIntents = listOf(
-            Intent("com.android.tv.action.VIEW_INPUTS"),
-            Intent("android.media.tv.action.SETUP_INPUTS"),
-            Intent(Intent.ACTION_VIEW, Uri.parse("content://android.media.tv/passthrough")),
-            pm.getLeanbackLaunchIntentForPackage("com.google.android.tv"),
-            pm.getLeanbackLaunchIntentForPackage("com.sony.dtv.tvinput"),
-            pm.getLeanbackLaunchIntentForPackage("com.mitv.tvinput"),
-            pm.getLaunchIntentForPackage("com.mitv.tvinput"),
-            pm.getLaunchIntentForPackage("com.xiaomi.mitv.input")
-        ).filterNotNull()
+        val dynamicTvPackages = runCatching {
+            pm.queryIntentServices(Intent("android.media.tv.TvInputService"), 0)
+                .mapNotNull { it.serviceInfo?.packageName }
+                .distinct()
+                .mapNotNull { pkg ->
+                    pm.getLeanbackLaunchIntentForPackage(pkg) ?: pm.getLaunchIntentForPackage(pkg)
+                }
+        }.getOrDefault(emptyList())
+
+        val candidateIntents = buildList {
+            add(Intent("com.android.tv.action.VIEW_INPUTS"))
+            add(Intent("android.media.tv.action.SETUP_INPUTS"))
+            add(Intent(Intent.ACTION_VIEW, Uri.parse("content://android.media.tv/passthrough")))
+            pm.getLeanbackLaunchIntentForPackage("com.google.android.tv")?.let { add(it) }
+            addAll(dynamicTvPackages)
+        }
 
         for (intent in candidateIntents) {
             try {

@@ -49,7 +49,7 @@ data class TorrentSession(
     val files: List<TorrentFile> = emptyList()
 ) {
     val bufferProgress: Float
-        get() = if (bufferTarget <= 0L) 1f else (bufferedBytes.toFloat() / bufferTarget.toFloat()).coerceIn(0f, 1f)
+        get() = if (bufferReady || bufferTarget <= 0L) 1f else (bufferedBytes.toFloat() / bufferTarget.toFloat()).coerceIn(0f, 1f)
 
     val selectedFile: TorrentFile?
         get() = files.firstOrNull { it.id == selected } ?: files.maxByOrNull { it.length }
