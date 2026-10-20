@@ -4,11 +4,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -52,43 +54,77 @@ class MainActivity : ComponentActivity() {
             }
         })
 
-        val pkgFilter = IntentFilter().apply {
-            addAction(Intent.ACTION_PACKAGE_ADDED)
-            addAction(Intent.ACTION_PACKAGE_REMOVED)
-            addAction(Intent.ACTION_PACKAGE_CHANGED)
-            addDataScheme("package")
+        runCatching {
+            val pkgFilter = IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addAction(Intent.ACTION_PACKAGE_CHANGED)
+                addDataScheme("package")
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.registerReceiver(
+                    this,
+                    packageReceiver,
+                    pkgFilter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                registerReceiver(packageReceiver, pkgFilter)
+            }
         }
-        registerReceiver(packageReceiver, pkgFilter)
 
         refreshAppsAsync()
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                var consecutiveFailures = 0
                 var tick = 0
+
                 while (true) {
                     val currentSettings = settingsState ?: appRepo.loadSettings()
-                    val tsResult = torrentRepo.fetchSessions(currentSettings)
-                    tsResult.onSuccess { (sessions, baseUrl) ->
-                        torrentSessionsState = sessions
-                        activeStreamHostState = baseUrl
-                        serverOnlineState = true
-                    }
+                    val hasSettings = currentSettings.torrentStreamUrl.isNotBlank() || currentSettings.jellyfinUrl.isNotBlank()
 
-                    if (tick % 6 == 0) {
-                        val jfResult = jellyfinRepo.fetchLibrary(currentSettings)
-                        jfResult.onSuccess { (resume, latest) ->
-                            jellyfinResumeState = resume
-                            jellyfinLatestState = latest
+                    if (hasSettings) {
+                        val tsResult = torrentRepo.fetchSessions(currentSettings)
+                        var success = false
+
+                        tsResult.onSuccess { (sessions, baseUrl) ->
+                            torrentSessionsState = sessions
+                            activeStreamHostState = baseUrl
                             serverOnlineState = true
-                        }.onFailure {
-                            if (tsResult.isFailure) {
-                                serverOnlineState = false
+                            success = true
+                        }
+
+                        if (tick % 6 == 0) {
+                            val jfResult = jellyfinRepo.fetchLibrary(currentSettings)
+                            jfResult.onSuccess { (resume, latest) ->
+                                jellyfinResumeState = resume
+                                jellyfinLatestState = latest
+                                serverOnlineState = true
+                                success = true
+                            }.onFailure {
+                                if (tsResult.isFailure) {
+                                    serverOnlineState = false
+                                }
                             }
+                        }
+
+                        if (success) {
+                            consecutiveFailures = 0
+                        } else if (tsResult.isFailure) {
+                            consecutiveFailures++
                         }
                     }
 
                     tick++
-                    delay(4_500L)
+
+                    // Exponential backoff when server is unreachable (avoids CPU/battery drain on TV)
+                    val delayMs = when {
+                        consecutiveFailures >= 5 -> 30_000L
+                        consecutiveFailures >= 2 -> 12_000L
+                        else -> 4_500L
+                    }
+                    delay(delayMs)
                 }
             }
         }

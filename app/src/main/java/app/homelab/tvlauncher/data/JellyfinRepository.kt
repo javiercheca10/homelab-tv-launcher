@@ -115,11 +115,27 @@ class JellyfinRepository {
 
     private fun buildCandidateUrls(primaryUrl: String, fallbackUrl: String): List<String> {
         val list = mutableListOf<String>()
-        val cleanPrimary = primaryUrl.trim().removeSuffix("/")
-        if (cleanPrimary.isNotEmpty()) list.add(cleanPrimary)
-        val cleanFallback = fallbackUrl.trim().removeSuffix("/")
-        if (cleanFallback.isNotEmpty() && cleanFallback !in list) list.add(cleanFallback)
+        normalizeUrl(primaryUrl, 8096)?.let { list.add(it) }
+        normalizeUrl(fallbackUrl, 8096)?.let { if (it !in list) list.add(it) }
         return list
+    }
+
+    private fun normalizeUrl(raw: String, defaultPort: Int): String? {
+        val trimmed = raw.trim().removeSuffix("/")
+        if (trimmed.isEmpty()) return null
+        val withProtocol = if (!trimmed.startsWith("http://", ignoreCase = true) &&
+            !trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            "http://$trimmed"
+        } else {
+            trimmed
+        }
+        val uri = runCatching { URL(withProtocol) }.getOrNull() ?: return withProtocol
+        return if (uri.port == -1 && uri.host != null && !uri.host.contains(":") && uri.path.isEmpty() && defaultPort > 0) {
+            "$withProtocol:$defaultPort"
+        } else {
+            withProtocol
+        }
     }
 
     private fun httpGet(urlStr: String, apiKey: String): String {

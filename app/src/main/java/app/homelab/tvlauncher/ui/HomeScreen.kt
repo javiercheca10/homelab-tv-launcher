@@ -3,6 +3,7 @@ package app.homelab.tvlauncher.ui
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,9 +15,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.tv.foundation.PivotOffsets
+import androidx.tv.foundation.lazy.list.TvLazyColumn
+import androidx.tv.foundation.lazy.list.TvLazyRow
+import androidx.tv.foundation.lazy.list.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -137,11 +141,12 @@ fun HomeScreen(
                     .padding(start = 44.dp, top = 10.dp, bottom = 6.dp)
             )
 
-            // 4 Smooth Horizontal Rows
-            LazyColumn(
+            // 4 Smooth Horizontal Rows with D-Pad Pivot Scrolling
+            TvLazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
+                pivotOffsets = PivotOffsets(0.08f, 0.08f),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 36.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
@@ -149,7 +154,8 @@ fun HomeScreen(
                 if (favoriteApps.isNotEmpty()) {
                     item(key = "row_favorites") {
                         SelectorRowSection(title = "Favoritas", accent = Color(0xFFE50914)) {
-                            LazyRow(
+                            TvLazyRow(
+                                pivotOffsets = PivotOffsets(0.08f, 0.08f),
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -176,7 +182,8 @@ fun HomeScreen(
                             subtitleBadge = if (torrentSessions.isNotEmpty()) "${torrentSessions.size} Torrent activo" else null,
                             accent = Color(0xFF38BDF8)
                         ) {
-                            LazyRow(
+                            TvLazyRow(
+                                pivotOffsets = PivotOffsets(0.08f, 0.08f),
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -226,7 +233,8 @@ fun HomeScreen(
                         subtitleBadge = "Mantén OK o pulsa MENÚ para organizar u ocultar",
                         accent = Color(0xFFA855F7)
                     ) {
-                        LazyRow(
+                        TvLazyRow(
+                            pivotOffsets = PivotOffsets(0.08f, 0.08f),
                             contentPadding = PaddingValues(horizontal = 44.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -252,7 +260,8 @@ fun HomeScreen(
                             subtitleBadge = "Biblioteca Multimedia",
                             accent = Color(0xFF00A4DC)
                         ) {
-                            LazyRow(
+                            TvLazyRow(
+                                pivotOffsets = PivotOffsets(0.08f, 0.08f),
                                 contentPadding = PaddingValues(horizontal = 44.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -822,12 +831,7 @@ private fun AppSelectorCard(
         label = "appCardScale"
     )
 
-    val bannerBitmap = remember(app.packageName, app.banner) {
-        app.banner?.let { drawableToBitmap(it, 320, 180) }
-    }
-    val iconBitmap = remember(app.packageName, app.icon) {
-        app.icon?.let { drawableToBitmap(it, 144, 144) }
-    }
+    val context = LocalContext.current
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -872,19 +876,16 @@ private fun AppSelectorCard(
                 .focusable(),
             contentAlignment = Alignment.Center
         ) {
-            if (bannerBitmap != null) {
-                Image(
-                    bitmap = bannerBitmap.asImageBitmap(),
+            val visualData = app.banner ?: app.icon
+            if (visualData != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(visualData)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = app.label,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else if (iconBitmap != null) {
-                Image(
-                    bitmap = iconBitmap.asImageBitmap(),
-                    contentDescription = app.label,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(56.dp)
+                    contentScale = if (app.banner != null) ContentScale.Crop else ContentScale.Fit,
+                    modifier = if (app.banner != null) Modifier.fillMaxSize() else Modifier.size(56.dp)
                 )
             } else {
                 Text(
@@ -1150,6 +1151,7 @@ private fun AppOptionsDialog(
     onHideApp: () -> Unit,
     onOpenSystemInfo: () -> Unit
 ) {
+    BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(18.dp),
@@ -1215,6 +1217,7 @@ private fun TorrentActionDialog(
     onTogglePause: () -> Unit,
     onSelectFile: (Int) -> Unit
 ) {
+    BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(18.dp),
@@ -1257,7 +1260,7 @@ private fun TorrentActionDialog(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                    LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
+                    TvLazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
                         items(session.files, key = { it.id }) { file ->
                             val isSelected = file.id == session.selected
                             DialogActionButton(
@@ -1283,6 +1286,7 @@ private fun JellyfinActionDialog(
     onPlayKodi: () -> Unit,
     onPlayInternal: () -> Unit
 ) {
+    BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(18.dp),
@@ -1328,6 +1332,7 @@ private fun HiddenAppsDialog(
     onRestoreApp: (TvAppInfo) -> Unit,
     onDismiss: () -> Unit
 ) {
+    BackHandler { onDismiss() }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(18.dp),
@@ -1351,7 +1356,7 @@ private fun HiddenAppsDialog(
                     color = Color.White.copy(alpha = 0.65f),
                     fontSize = 12.sp
                 )
-                LazyColumn(
+                TvLazyColumn(
                     modifier = Modifier.heightIn(max = 260.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -1374,20 +1379,25 @@ private fun ServerSettingsDialog(
     onSave: (LauncherSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
+    BackHandler { onDismiss() }
     var selectedPlayer by remember { mutableStateOf(current.preferredPlayer) }
     var jfUrl by remember { mutableStateOf(current.jellyfinUrl) }
     var tsUrl by remember { mutableStateOf(current.torrentStreamUrl) }
+    var jfApiKey by remember { mutableStateOf(current.jellyfinApiKey) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(18.dp),
             color = Color(0xFF111726),
             modifier = Modifier
-                .width(480.dp)
+                .width(520.dp)
                 .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier
+                    .padding(24.dp)
+                    .heightIn(max = 560.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
@@ -1397,7 +1407,7 @@ private fun ServerSettingsDialog(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Reproductor al pulsar OK en películas o torrents:",
+                    text = "Reproductor preferido al pulsar OK:",
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 13.sp
                 )
@@ -1412,10 +1422,55 @@ private fun ServerSettingsDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Torrent Stream: $tsUrl  |  Jellyfin: $jfUrl",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 11.sp
+                    text = "Servidores Homelab:",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
+
+                OutlinedTextField(
+                    value = tsUrl,
+                    onValueChange = { tsUrl = it },
+                    label = { Text("URL Torrent Stream Web", color = Color.White.copy(alpha = 0.6f)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF38BDF8),
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = jfUrl,
+                    onValueChange = { jfUrl = it },
+                    label = { Text("URL Jellyfin", color = Color.White.copy(alpha = 0.6f)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF00A4DC),
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = jfApiKey,
+                    onValueChange = { jfApiKey = it },
+                    label = { Text("API Key de Jellyfin", color = Color.White.copy(alpha = 0.6f)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF00A4DC),
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -1425,8 +1480,9 @@ private fun ServerSettingsDialog(
                                 onSave(
                                     current.copy(
                                         preferredPlayer = selectedPlayer,
-                                        jellyfinUrl = jfUrl,
-                                        torrentStreamUrl = tsUrl
+                                        jellyfinUrl = jfUrl.trim(),
+                                        torrentStreamUrl = tsUrl.trim(),
+                                        jellyfinApiKey = jfApiKey.trim()
                                     )
                                 )
                             }
