@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Homelab TV</string>
+    <string name="accessibility_service_label">Homelab TV Botón Home</string>
+    <string name="accessibility_service_description">Redirige el botón Home del mando al Launcher Homelab TV.</string>
+</resources>

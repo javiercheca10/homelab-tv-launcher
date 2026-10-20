@@ -1,0 +1,4 @@
+-keepattributes *Annotation*,InnerClasses,EnclosingMethod,Signature
+-keep class app.homelab.tvlauncher.data.** { *; }
+-keepclassmembers class app.homelab.tvlauncher.data.** { *; }
+-dontwarn kotlinx.serialization.**
