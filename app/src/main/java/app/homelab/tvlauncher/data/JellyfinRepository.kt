@@ -10,6 +10,12 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 @Serializable
+private data class JellyfinUserDto(
+    @SerialName("Id") val id: String,
+    @SerialName("Name") val name: String = ""
+)
+
+@Serializable
 private data class JellyfinResumeEnvelope(
     @SerialName("Items") val items: List<JellyfinItemDto> = emptyList()
 )
@@ -24,7 +30,7 @@ class JellyfinRepository {
 
     suspend fun fetchLibrary(settings: LauncherSettings): Result<Pair<List<JellyfinMediaItem>, List<JellyfinMediaItem>>> =
         withContext(Dispatchers.IO) {
-            if (settings.jellyfinApiKey.isBlank() || settings.jellyfinUserId.isBlank()) {
+            if (settings.jellyfinApiKey.isBlank()) {
                 return@withContext Result.success(emptyList<JellyfinMediaItem>() to emptyList())
             }
 
@@ -33,8 +39,18 @@ class JellyfinRepository {
 
             for (baseUrl in candidates) {
                 try {
-                    val userId = settings.jellyfinUserId
                     val apiKey = settings.jellyfinApiKey
+                    var userId = settings.jellyfinUserId
+
+                    if (userId.isBlank()) {
+                        val usersJson = httpGet("$baseUrl/Users", apiKey)
+                        val users = json.decodeFromString(ListSerializer(JellyfinUserDto.serializer()), usersJson)
+                        userId = users.firstOrNull()?.id ?: ""
+                    }
+
+                    if (userId.isBlank()) {
+                        throw IllegalStateException("No se pudo obtener ningún usuario de Jellyfin")
+                    }
 
                     val resumeJson = httpGet(
                         "$baseUrl/Users/$userId/Items/Resume?Limit=12&Fields=Overview,PrimaryImageAspectRatio,UserData,ParentId&MediaTypes=Video",

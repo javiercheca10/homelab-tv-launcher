@@ -6,10 +6,15 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -43,19 +48,42 @@ class PlayerActivity : ComponentActivity() {
         }
         setContentView(playerView)
 
-        val exoPlayer = ExoPlayer.Builder(this).build().also { exo ->
-            playerView.player = exo
-            val item = MediaItem.Builder()
-                .setUri(Uri.parse(streamUrl))
-                .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
-                .build()
-            exo.setMediaItem(item)
-            if (startPositionMs > 0L) {
-                exo.seekTo(startPositionMs)
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .build()
+
+        val exoPlayer = ExoPlayer.Builder(this)
+            .setAudioAttributes(audioAttributes, true)
+            .build()
+            .also { exo ->
+                playerView.player = exo
+                val item = MediaItem.Builder()
+                    .setUri(Uri.parse(streamUrl))
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+                    .build()
+                exo.setMediaItem(item)
+                if (startPositionMs > 0L) {
+                    exo.seekTo(startPositionMs)
+                }
+                exo.addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == Player.STATE_ENDED) {
+                            finish()
+                        }
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        Toast.makeText(
+                            this@PlayerActivity,
+                            "Error de reproducción: ${error.localizedMessage ?: "error de red o códec"}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                })
+                exo.prepare()
+                exo.playWhenReady = true
             }
-            exo.prepare()
-            exo.playWhenReady = true
-        }
         player = exoPlayer
     }
 

@@ -192,7 +192,12 @@ class AppRepository(private val context: Context) {
         val candidateIntents = listOf(
             Intent("com.android.tv.action.VIEW_INPUTS"),
             Intent("android.media.tv.action.SETUP_INPUTS"),
-            pm.getLeanbackLaunchIntentForPackage("com.google.android.tv")
+            Intent(Intent.ACTION_VIEW, Uri.parse("content://android.media.tv/passthrough")),
+            pm.getLeanbackLaunchIntentForPackage("com.google.android.tv"),
+            pm.getLeanbackLaunchIntentForPackage("com.sony.dtv.tvinput"),
+            pm.getLeanbackLaunchIntentForPackage("com.mitv.tvinput"),
+            pm.getLaunchIntentForPackage("com.mitv.tvinput"),
+            pm.getLaunchIntentForPackage("com.xiaomi.mitv.input")
         ).filterNotNull()
 
         for (intent in candidateIntents) {

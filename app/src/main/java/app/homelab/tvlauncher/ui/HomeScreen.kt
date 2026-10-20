@@ -429,18 +429,18 @@ private fun ImmersiveBackdrop(hero: HeroPreview) {
                         .alpha(0.38f)
                 )
             } else if (state.fallbackDrawable != null) {
-                val bmp = remember(state.id) { drawableToBitmap(state.fallbackDrawable, 320, 180) }
-                if (bmp != null) {
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(55.dp)
-                            .alpha(0.26f)
-                    )
-                }
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(state.fallbackDrawable)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(55.dp)
+                        .alpha(0.26f)
+                )
             }
 
             // Left-to-Right Netflix Vignette (keeps left side dark for Hero text legibility)
@@ -846,14 +846,19 @@ private fun AppSelectorCard(
                     if (it.isFocused) onFocused()
                 }
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown &&
-                        (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info)
-                    ) {
-                        onLongClick()
-                        true
-                    } else {
-                        false
+                    if (event.type == KeyEventType.KeyDown) {
+                        if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
+                            onLongClick()
+                            return@onPreviewKeyEvent true
+                        }
+                        if ((event.key == Key.DirectionCenter || event.key == Key.Enter) &&
+                            (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount == 1)
+                        ) {
+                            onLongClick()
+                            return@onPreviewKeyEvent true
+                        }
                     }
+                    false
                 }
                 .clip(RoundedCornerShape(14.dp))
                 .background(
@@ -970,6 +975,21 @@ private fun TorrentSessionCard(
                     isFocused = it.isFocused
                     if (it.isFocused) onFocused()
                 }
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
+                            onLongClick()
+                            return@onPreviewKeyEvent true
+                        }
+                        if ((event.key == Key.DirectionCenter || event.key == Key.Enter) &&
+                            (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount == 1)
+                        ) {
+                            onLongClick()
+                            return@onPreviewKeyEvent true
+                        }
+                    }
+                    false
+                }
                 .clip(RoundedCornerShape(14.dp))
                 .background(
                     Brush.linearGradient(
@@ -1080,6 +1100,21 @@ private fun JellyfinMediaCard(
                 .onFocusChanged {
                     isFocused = it.isFocused
                     if (it.isFocused) onFocused()
+                }
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        if (event.key == Key.Menu || event.key == Key.Bookmark || event.key == Key.Info) {
+                            onLongClick()
+                            return@onPreviewKeyEvent true
+                        }
+                        if ((event.key == Key.DirectionCenter || event.key == Key.Enter) &&
+                            (event.nativeKeyEvent.isLongPress || event.nativeKeyEvent.repeatCount == 1)
+                        ) {
+                            onLongClick()
+                            return@onPreviewKeyEvent true
+                        }
+                    }
+                    false
                 }
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF131B2E))
@@ -1610,19 +1645,6 @@ private fun jellyfinToHero(item: JellyfinMediaItem, isResume: Boolean): HeroPrev
     )
 }
 
-private fun drawableToBitmap(drawable: Drawable, maxW: Int, maxH: Int): Bitmap? {
-    return try {
-        val w = drawable.intrinsicWidth.takeIf { it > 0 }?.coerceAtMost(maxW) ?: maxW
-        val h = drawable.intrinsicHeight.takeIf { it > 0 }?.coerceAtMost(maxH) ?: maxH
-        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        bitmap
-    } catch (_: Throwable) {
-        null
-    }
-}
 
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0L) return "0 MB"

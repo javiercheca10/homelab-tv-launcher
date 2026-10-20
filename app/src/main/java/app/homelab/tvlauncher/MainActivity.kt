@@ -82,38 +82,47 @@ class MainActivity : ComponentActivity() {
 
                 while (true) {
                     val currentSettings = settingsState ?: appRepo.loadSettings()
-                    val hasSettings = currentSettings.torrentStreamUrl.isNotBlank() || currentSettings.jellyfinUrl.isNotBlank()
+                    val hasTs = currentSettings.torrentStreamUrl.isNotBlank() || currentSettings.tailscaleIp.isNotBlank()
+                    val hasJf = currentSettings.jellyfinUrl.isNotBlank() || (currentSettings.tailscaleIp.isNotBlank() && currentSettings.jellyfinApiKey.isNotBlank())
 
-                    if (hasSettings) {
+                    var anyAttempted = false
+                    var anySuccess = false
+
+                    if (hasTs) {
+                        anyAttempted = true
                         val tsResult = torrentRepo.fetchSessions(currentSettings)
-                        var success = false
-
                         tsResult.onSuccess { (sessions, baseUrl) ->
                             torrentSessionsState = sessions
                             activeStreamHostState = baseUrl
-                            serverOnlineState = true
-                            success = true
+                            anySuccess = true
+                        }.onFailure {
+                            torrentSessionsState = emptyList()
                         }
+                    }
 
-                        if (tick % 6 == 0) {
-                            val jfResult = jellyfinRepo.fetchLibrary(currentSettings)
-                            jfResult.onSuccess { (resume, latest) ->
-                                jellyfinResumeState = resume
-                                jellyfinLatestState = latest
-                                serverOnlineState = true
-                                success = true
-                            }.onFailure {
-                                if (tsResult.isFailure) {
-                                    serverOnlineState = false
-                                }
-                            }
+                    if (hasJf && (tick % 6 == 0 || !hasTs)) {
+                        anyAttempted = true
+                        val jfResult = jellyfinRepo.fetchLibrary(currentSettings)
+                        jfResult.onSuccess { (resume, latest) ->
+                            jellyfinResumeState = resume
+                            jellyfinLatestState = latest
+                            anySuccess = true
+                        }.onFailure {
+                            jellyfinResumeState = emptyList()
+                            jellyfinLatestState = emptyList()
                         }
+                    }
 
-                        if (success) {
+                    if (anyAttempted) {
+                        if (anySuccess) {
                             consecutiveFailures = 0
-                        } else if (tsResult.isFailure) {
+                            serverOnlineState = true
+                        } else {
                             consecutiveFailures++
+                            serverOnlineState = false
                         }
+                    } else {
+                        serverOnlineState = false
                     }
 
                     tick++
@@ -209,16 +218,33 @@ class MainActivity : ComponentActivity() {
     private fun refreshServerNow() {
         val currentSettings = settingsState ?: appRepo.loadSettings()
         lifecycleScope.launch {
-            torrentRepo.fetchSessions(currentSettings).onSuccess { (sessions, baseUrl) ->
-                torrentSessionsState = sessions
-                activeStreamHostState = baseUrl
-                serverOnlineState = true
+            var tsOk = false
+            var jfOk = false
+            val hasTs = currentSettings.torrentStreamUrl.isNotBlank() || currentSettings.tailscaleIp.isNotBlank()
+            val hasJf = currentSettings.jellyfinUrl.isNotBlank() || (currentSettings.tailscaleIp.isNotBlank() && currentSettings.jellyfinApiKey.isNotBlank())
+
+            if (hasTs) {
+                torrentRepo.fetchSessions(currentSettings).onSuccess { (sessions, baseUrl) ->
+                    torrentSessionsState = sessions
+                    activeStreamHostState = baseUrl
+                    tsOk = true
+                }.onFailure {
+                    torrentSessionsState = emptyList()
+                }
             }
-            jellyfinRepo.fetchLibrary(currentSettings).onSuccess { (resume, latest) ->
-                jellyfinResumeState = resume
-                jellyfinLatestState = latest
-                serverOnlineState = true
+
+            if (hasJf) {
+                jellyfinRepo.fetchLibrary(currentSettings).onSuccess { (resume, latest) ->
+                    jellyfinResumeState = resume
+                    jellyfinLatestState = latest
+                    jfOk = true
+                }.onFailure {
+                    jellyfinResumeState = emptyList()
+                    jellyfinLatestState = emptyList()
+                }
             }
+
+            serverOnlineState = tsOk || jfOk
         }
     }
 }
